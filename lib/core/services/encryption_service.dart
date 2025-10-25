@@ -2286,16 +2286,50 @@ class EncryptionService {
     String masterPassword,
     Uint8List salt,
   ) async {
-    final pbkdf2 = Pbkdf2(
-      macAlgorithm: Hmac.sha256(),
-      iterations: AppConstants.pbkdf2Iterations,
-      bits: AppConstants.keyLength,
-    );
+    try {
+      print(
+        'Deriving master key with password length: ${masterPassword.length}, salt length: ${salt.length}',
+      );
 
-    return await pbkdf2.deriveKey(
-      secretKey: SecretKey(utf8.encode(masterPassword)),
-      nonce: salt,
-    );
+      // Validate inputs
+      if (masterPassword.isEmpty) {
+        throw Exception('Master password cannot be empty');
+      }
+
+      if (salt.isEmpty) {
+        throw Exception('Salt cannot be empty');
+      }
+
+      final pbkdf2 = Pbkdf2(
+        macAlgorithm: Hmac.sha256(),
+        iterations: AppConstants.pbkdf2Iterations,
+        bits: AppConstants.keyLength,
+      );
+
+      // Create SecretKey with validation
+      final passwordBytes = utf8.encode(masterPassword);
+      print('Password bytes length: ${passwordBytes.length}');
+
+      if (passwordBytes.isEmpty) {
+        throw Exception('Password encoding resulted in empty bytes');
+      }
+
+      final secretKey = SecretKey(passwordBytes);
+      print(
+        'SecretKey created successfully with ${passwordBytes.length} bytes',
+      );
+
+      final derivedKey = await pbkdf2.deriveKey(
+        secretKey: secretKey,
+        nonce: salt,
+      );
+
+      print('Master key derived successfully');
+      return derivedKey;
+    } catch (e) {
+      print('Error deriving master key: $e');
+      rethrow;
+    }
   }
 
   // Encrypt credential data
@@ -2341,22 +2375,33 @@ class EncryptionService {
 
   // Encrypt recovery key with master password
   Future<String> encryptRecoveryKey(String recoveryKey, SecretKey key) async {
-    final algorithm = AesGcm.with256bits();
-    final nonce = algorithm.newNonce();
+    try {
+      print('Encrypting recovery key with length: ${recoveryKey.length}');
 
-    final secretBox = await algorithm.encrypt(
-      utf8.encode(recoveryKey),
-      secretKey: key,
-      nonce: nonce,
-    );
+      final algorithm = AesGcm.with256bits();
+      final nonce = algorithm.newNonce();
+      print('Nonce generated');
 
-    final encrypted = {
-      'data': base64Encode(secretBox.cipherText),
-      'nonce': base64Encode(secretBox.nonce),
-      'mac': base64Encode(secretBox.mac.bytes),
-    };
+      final secretBox = await algorithm.encrypt(
+        utf8.encode(recoveryKey),
+        secretKey: key,
+        nonce: nonce,
+      );
+      print('Recovery key encrypted');
 
-    return base64Encode(utf8.encode(jsonEncode(encrypted)));
+      final encrypted = {
+        'data': base64Encode(secretBox.cipherText),
+        'nonce': base64Encode(secretBox.nonce),
+        'mac': base64Encode(secretBox.mac.bytes),
+      };
+
+      final result = base64Encode(utf8.encode(jsonEncode(encrypted)));
+      print('Encryption completed successfully');
+      return result;
+    } catch (e) {
+      print('Error encrypting recovery key: $e');
+      rethrow;
+    }
   }
 
   // Decrypt recovery key with master password
@@ -2410,17 +2455,32 @@ class EncryptionService {
 
   // Store salt securely
   Future<void> storeSalt(Uint8List salt) async {
-    await _secureStorage.write(
-      key: AppConstants.saltKey,
-      value: base64Encode(salt),
-    );
+    try {
+      print('Storing salt with length: ${salt.length}');
+      final saltStr = base64Encode(salt);
+      print('Salt encoded to string, length: ${saltStr.length}');
+      await _secureStorage.write(key: AppConstants.saltKey, value: saltStr);
+      print('Salt stored successfully in secure storage');
+    } catch (e) {
+      print('Error storing salt: $e');
+      rethrow;
+    }
   }
 
   // Get stored salt
   Future<Uint8List?> getStoredSalt() async {
-    final saltStr = await _secureStorage.read(key: AppConstants.saltKey);
-    if (saltStr == null) return null;
-    return base64Decode(saltStr);
+    try {
+      print('Retrieving stored salt...');
+      final saltStr = await _secureStorage.read(key: AppConstants.saltKey);
+      print('Salt string from storage: ${saltStr != null ? 'found' : 'null'}');
+      if (saltStr == null) return null;
+      final salt = base64Decode(saltStr);
+      print('Salt decoded successfully, length: ${salt.length}');
+      return salt;
+    } catch (e) {
+      print('Error retrieving salt: $e');
+      return null;
+    }
   }
 
   // Clear all stored data

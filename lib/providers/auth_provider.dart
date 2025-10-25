@@ -32,13 +32,112 @@ class AuthProvider extends ChangeNotifier {
   Future<AuthResult> register({
     required String email,
     required String password,
-    required String masterPassword,
   }) async {
     _setLoading(true);
     _clearError();
 
     try {
       final result = await _authService.register(
+        email: email,
+        password: password,
+      );
+
+      if (result.success) {
+        // Don't set authenticated yet - wait for completeRegistration
+        await _storageService.updateLastActiveTime();
+      } else {
+        _setError(result.error ?? 'Registration failed');
+      }
+
+      return result;
+    } catch (e) {
+      _setError('Registration failed: ${e.toString()}');
+      return AuthResult.failure('Registration failed: ${e.toString()}');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<AuthResult> completeRegistration({
+    required String masterPassword,
+    required String recoveryKey,
+  }) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.completeRegistration(
+        masterPassword: masterPassword,
+        recoveryKey: recoveryKey,
+      );
+
+      if (result.success) {
+        _isAuthenticated = true;
+        _isVaultUnlocked = true;
+        await _storageService.updateLastActiveTime();
+      } else {
+        _setError(result.error ?? 'Registration completion failed');
+      }
+
+      return result;
+    } catch (e) {
+      _setError('Registration completion failed: ${e.toString()}');
+      return AuthResult.failure(
+        'Registration completion failed: ${e.toString()}',
+      );
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Email confirmation methods using codes
+  Future<AuthResult> verifyConfirmationCode({
+    required String email,
+    required String code,
+  }) async {
+    return await _authService.verifyConfirmationCode(email: email, code: code);
+  }
+
+  Future<AuthResult> resendConfirmationCode(String email) async {
+    return await _authService.resendConfirmationCode(email);
+  }
+
+  Future<AuthResult> initialLogin({
+    required String email,
+    required String password,
+  }) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.initialLogin(
+        email: email,
+        password: password,
+      );
+
+      if (!result.success) {
+        _setError(result.error ?? 'Login failed');
+      }
+
+      return result;
+    } catch (e) {
+      _setError('Login failed: ${e.toString()}');
+      return AuthResult.failure('Login failed: ${e.toString()}');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<AuthResult> completeLogin({
+    required String email,
+    required String password,
+    required String masterPassword,
+  }) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.completeLogin(
         email: email,
         password: password,
         masterPassword: masterPassword,
@@ -49,13 +148,13 @@ class AuthProvider extends ChangeNotifier {
         _isVaultUnlocked = true;
         await _storageService.updateLastActiveTime();
       } else {
-        _setError(result.error ?? 'Registration failed');
+        _setError(result.error ?? 'Login failed');
       }
 
       return result;
     } catch (e) {
-      _setError('Registration failed: ${e.toString()}');
-      return AuthResult.failure('Registration failed: ${e.toString()}');
+      _setError('Login failed: ${e.toString()}');
+      return AuthResult.failure('Login failed: ${e.toString()}');
     } finally {
       _setLoading(false);
     }

@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/app_constants.dart';
 import 'encryption_service.dart';
 import 'supabase_service.dart';
+import 'storage_service.dart';
 import '../../models/credential.dart';
 
 class AuthService {
@@ -15,6 +16,7 @@ class AuthService {
 
   final SupabaseService _supabase = SupabaseService();
   final EncryptionService _encryption = EncryptionService();
+  final StorageService _storageService = StorageService();
   final LocalAuthentication _localAuth = LocalAuthentication();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
@@ -25,42 +27,192 @@ class AuthService {
   bool get isAuthenticated => _isAuthenticated;
   bool get isVaultUnlocked => _isVaultUnlocked;
 
-  // Register new user
+  // Register new user (first step - Supabase registration only)
   Future<AuthResult> register({
     required String email,
     required String password,
-    required String masterPassword,
   }) async {
     try {
+      print('Starting registration for: $email');
+
+      // Validate inputs
+      if (email.isEmpty) {
+        return AuthResult.failure('Email cannot be empty');
+      }
+      if (password.isEmpty) {
+        return AuthResult.failure('Password cannot be empty');
+      }
+
+      print('Input validation passed');
+
       // Register with Supabase
       final authResponse = await _supabase.signUp(email, password);
+      print('Supabase registration response: ${authResponse.user?.id}');
 
       if (authResponse.user == null) {
         return AuthResult.failure('Registration failed');
       }
 
-      // Generate salt and recovery key
+      print(
+        'Supabase registration successful, user ID: ${authResponse.user!.id}',
+      );
+      print(
+        'Session token: ${authResponse.session?.accessToken != null ? 'present' : 'missing'}',
+      );
+
+      // Store credentials temporarily for re-authentication if needed
+      await _storageService.storePreference('temp_email', email);
+      await _storageService.storePreference('temp_password', password);
+
+      // Generate salt and recovery key for later use
+      print('Generating salt and recovery key...');
       final salt = await _encryption.generateSalt();
       final recoveryKey = await _encryption.generateRecoveryKey();
+      print('Salt and recovery key generated');
+
+      // Store salt for later use in completeRegistration
+      print('Storing salt...');
+      await _encryption.storeSalt(salt);
+      print('Salt stored');
+
+      print('Registration step 1 completed successfully');
+      return AuthResult.success(recoveryKey: recoveryKey);
+    } catch (e) {
+      print('Registration error: $e');
+      return AuthResult.failure('Registration failed: ${e.toString()}');
+    }
+  }
+
+  // Verify confirmation code
+  Future<AuthResult> verifyConfirmationCode({
+    required String email,
+    required String code,
+  }) async {
+    try {
+      final response = await _supabase.verifyConfirmationCode(
+        email: email,
+        token: code,
+      );
+
+      if (response.user != null) {
+        return AuthResult.success();
+      } else {
+        return AuthResult.failure('Invalid confirmation code');
+      }
+    } catch (e) {
+      return AuthResult.failure(
+        'Error verifying confirmation code: ${e.toString()}',
+      );
+    }
+  }
+
+  // Resend confirmation code
+  Future<AuthResult> resendConfirmationCode(String email) async {
+    try {
+      await _supabase.resendConfirmationCode(email);
+      return AuthResult.success();
+    } catch (e) {
+      return AuthResult.failure(
+        'Failed to resend confirmation code: ${e.toString()}',
+      );
+    }
+  }
+
+  // Complete registration with master password (second step)
+  Future<AuthResult> completeRegistration({
+    required String masterPassword,
+    required String recoveryKey,
+  }) async {
+    try {
+      print('Completing registration with master password');
+
+      // Validate inputs
+      if (masterPassword.isEmpty) {
+        return AuthResult.failure('Master password cannot be empty');
+      }
+
+      print('Input validation passed');
+
+      // Check if user is still authenticated
+      var currentUser = _supabase.getCurrentUser();
+      if (currentUser == null) {
+        print('User not authenticated - attempting re-authentication...');
+
+        // Try to re-authenticate using stored credentials
+        final tempEmail = await _storageService.getPreference('temp_email');
+        final tempPassword = await _storageService.getPreference(
+          'temp_password',
+        );
+
+        if (tempEmail == null || tempPassword == null) {
+          print('No temporary credentials found');
+          return AuthResult.failure(
+            'Session expired. Please restart registration.',
+          );
+        }
+
+        print('Re-authenticating with stored credentials...');
+        final authResponse = await _supabase.signIn(tempEmail, tempPassword);
+
+        if (authResponse.user == null) {
+          print('Re-authentication failed');
+          return AuthResult.failure(
+            'Session expired. Please restart registration.',
+          );
+        }
+
+        currentUser = authResponse.user;
+        print('Re-authentication successful: ${currentUser?.id}');
+      } else {
+        print('User is authenticated: ${currentUser.id}');
+      }
+
+      // Ensure session is valid and refresh if needed
+      final sessionValid = await _supabase.ensureValidSession();
+      if (!sessionValid) {
+        print('Failed to maintain valid session');
+        return AuthResult.failure(
+          'Session expired. Please restart registration.',
+        );
+      }
+
+      print('Session is valid and ready for use');
+
+      // Get the stored salt
+      final salt = await _encryption.getStoredSalt();
+      if (salt == null) {
+        return AuthResult.failure(
+          'No salt found. Please restart registration.',
+        );
+      }
+
+      print('Salt retrieved successfully');
 
       // Derive master key
+      print('Deriving master key...');
       final masterKey = await _encryption.deriveMasterKey(masterPassword, salt);
+      print('Master key derived successfully');
 
       // Encrypt recovery key
+      print('Encrypting recovery key...');
       final encryptedRecoveryKey = await _encryption.encryptRecoveryKey(
         recoveryKey,
         masterKey,
       );
+      print('Recovery key encrypted');
 
-      // Store salt and master password hash
-      await _encryption.storeSalt(salt);
+      // Store master password hash
+      print('Storing master password hash...');
       await _encryption.storeMasterKeyHash(masterPassword);
+      print('Master password hash stored');
 
       // Create user settings
+      print('Creating user settings...');
       await _supabase.createUserSettings(
         base64Encode(salt),
         encryptedRecoveryKey,
       );
+      print('User settings created');
 
       // Set session keys
       _encryption.setMasterKey(masterKey);
@@ -69,9 +221,98 @@ class AuthService {
       _isAuthenticated = true;
       _isVaultUnlocked = true;
 
+      // Clean up temporary credentials
+      await _storageService.deletePreference('temp_email');
+      await _storageService.deletePreference('temp_password');
+
+      print('Registration completed successfully');
       return AuthResult.success(recoveryKey: recoveryKey);
     } catch (e) {
-      return AuthResult.failure('Registration failed: ${e.toString()}');
+      print('Registration completion error: $e');
+      return AuthResult.failure(
+        'Registration completion failed: ${e.toString()}',
+      );
+    }
+  }
+
+  // Initial login (email + password only)
+  Future<AuthResult> initialLogin({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      print('Starting initial login for: $email');
+
+      // Login with Supabase
+      final authResponse = await _supabase.signIn(email, password);
+
+      if (authResponse.user == null) {
+        return AuthResult.failure('Invalid email or password');
+      }
+
+      print('Supabase login successful, user ID: ${authResponse.user!.id}');
+      return AuthResult.success();
+    } catch (e) {
+      print('Initial login error: $e');
+      return AuthResult.failure('Login failed: ${e.toString()}');
+    }
+  }
+
+  // Complete login with master password
+  Future<AuthResult> completeLogin({
+    required String email,
+    required String password,
+    required String masterPassword,
+  }) async {
+    try {
+      print('Completing login with master password');
+
+      // Login with Supabase again to ensure session is valid
+      final authResponse = await _supabase.signIn(email, password);
+
+      if (authResponse.user == null) {
+        return AuthResult.failure('Session expired. Please try again.');
+      }
+
+      // Get user settings
+      final settings = await _supabase.getUserSettings();
+      if (settings == null) {
+        return AuthResult.failure('User settings not found');
+      }
+
+      // Get salt
+      final salt = base64Decode(settings.salt);
+
+      // Derive master key
+      final masterKey = await _encryption.deriveMasterKey(masterPassword, salt);
+
+      // Verify master password by trying to decrypt recovery key
+      if (settings.encryptedRecoveryKey != null) {
+        try {
+          await _encryption.decryptRecoveryKey(
+            settings.encryptedRecoveryKey!,
+            masterKey,
+          );
+        } catch (e) {
+          return AuthResult.failure('Invalid master password');
+        }
+      }
+
+      // Store master password hash
+      await _encryption.storeMasterKeyHash(masterPassword);
+
+      // Set session keys
+      _encryption.setMasterKey(masterKey);
+      _encryption.setSalt(salt);
+
+      _isAuthenticated = true;
+      _isVaultUnlocked = true;
+
+      print('Login completed successfully');
+      return AuthResult.success();
+    } catch (e) {
+      print('Complete login error: $e');
+      return AuthResult.failure('Login failed: ${e.toString()}');
     }
   }
 

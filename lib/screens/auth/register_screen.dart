@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'login_screen.dart';
+import 'code_confirmation_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,17 +17,84 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _masterPasswordController = TextEditingController();
-  final _confirmMasterPasswordController = TextEditingController();
 
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
-  bool _isMasterPasswordVisible = false;
-  bool _isConfirmMasterPasswordVisible = false;
   bool _isLoading = false;
-  bool _showMasterPasswordFields = false;
   bool _hasAcceptedTerms = false;
-  String? _recoveryKey;
+
+  // Email suggestions
+  bool _showEmailSuggestions = false;
+  List<String> _emailSuggestions = [];
+  final List<String> _commonDomains = [
+    'gmail.com',
+    'yahoo.com',
+    'hotmail.com',
+    'outlook.com',
+    'yahoo.com.mx',
+    'hotmail.com.mx',
+    'live.com',
+    'icloud.com',
+    'aol.com',
+    'protonmail.com',
+    'yandex.com',
+    'mail.com',
+    'zoho.com',
+    'fastmail.com',
+    'tutanota.com',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_onEmailChanged);
+  }
+
+  void _onEmailChanged() {
+    final text = _emailController.text;
+    final atIndex = text.lastIndexOf('@');
+
+    if (atIndex != -1) {
+      final domainPart = text.substring(atIndex + 1);
+      if (domainPart.isNotEmpty) {
+        _emailSuggestions = _commonDomains
+            .where(
+              (domain) =>
+                  domain.toLowerCase().startsWith(domainPart.toLowerCase()),
+            )
+            .toList();
+        setState(() {
+          _showEmailSuggestions = _emailSuggestions.isNotEmpty;
+        });
+      } else {
+        setState(() {
+          _showEmailSuggestions = true;
+          _emailSuggestions = _commonDomains;
+        });
+      }
+    } else {
+      setState(() {
+        _showEmailSuggestions = false;
+      });
+    }
+  }
+
+  void _selectEmailSuggestion(String domain) {
+    final text = _emailController.text;
+    final atIndex = text.lastIndexOf('@');
+
+    if (atIndex != -1) {
+      final username = text.substring(0, atIndex);
+      _emailController.text = '$username@$domain';
+      _emailController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _emailController.text.length),
+      );
+    }
+
+    setState(() {
+      _showEmailSuggestions = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,24 +182,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 32),
 
-                  // Email Input
-                  _buildInputField(
-                        controller: _emailController,
-                        label: 'Email',
-                        icon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          if (!RegExp(
-                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                          ).hasMatch(value)) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
-                      )
+                  // Email Input with Suggestions
+                  _buildEmailInputWithSuggestions()
                       .animate()
                       .fadeIn(duration: 600.ms, delay: 600.ms)
                       .slideX(begin: -0.3, duration: 600.ms, delay: 600.ms),
@@ -254,231 +306,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       .fadeIn(duration: 600.ms, delay: 1000.ms)
                       .slideY(begin: 0.3, duration: 600.ms, delay: 1000.ms),
 
-                  // Master Password Fields (shown after successful registration)
-                  if (_showMasterPasswordFields) ...[
-                    const SizedBox(height: 32),
-
-                    Text(
-                      'Set Master Password',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                      textAlign: TextAlign.center,
-                    ).animate().fadeIn(duration: 400.ms),
-
-                    const SizedBox(height: 8),
-
-                    Text(
-                      'This password encrypts your vault. Choose a strong password.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
-                      textAlign: TextAlign.center,
-                    ).animate().fadeIn(duration: 400.ms),
-
-                    const SizedBox(height: 24),
-
-                    _buildInputField(
-                          controller: _masterPasswordController,
-                          label: 'Master Password',
-                          icon: Icons.security,
-                          isPassword: true,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter a master password';
-                            }
-                            if (value.length < 8) {
-                              return 'Master password must be at least 8 characters';
-                            }
-                            return null;
-                          },
-                        )
-                        .animate()
-                        .fadeIn(duration: 400.ms)
-                        .slideY(begin: 0.3, duration: 400.ms),
-
-                    const SizedBox(height: 16),
-
-                    _buildInputField(
-                          controller: _confirmMasterPasswordController,
-                          label: 'Confirm Master Password',
-                          icon: Icons.security,
-                          isPassword: true,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please confirm your master password';
-                            }
-                            if (value != _masterPasswordController.text) {
-                              return 'Master passwords do not match';
-                            }
-                            return null;
-                          },
-                        )
-                        .animate()
-                        .fadeIn(duration: 400.ms)
-                        .slideY(begin: 0.3, duration: 400.ms),
-
-                    const SizedBox(height: 24),
-
-                    ElevatedButton(
-                          onPressed: _isLoading ? null : _handleMasterPassword,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Theme.of(
-                              context,
-                            ).colorScheme.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Color(0xFF6366F1),
-                                    ),
-                                  ),
-                                )
-                              : const Text(
-                                  'Complete Setup',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        )
-                        .animate()
-                        .fadeIn(duration: 400.ms)
-                        .slideY(begin: 0.3, duration: 400.ms),
-                  ],
-
-                  // Recovery Key Display (shown after successful setup)
-                  if (_recoveryKey != null) ...[
-                    const SizedBox(height: 32),
-
-                    Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.warning_amber_rounded,
-                                color: Colors.orange,
-                                size: 48,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Save Your Recovery Key',
-                                style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Write down this recovery key and store it safely. You\'ll need it if you forget your master password.',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.8,
-                                      ),
-                                    ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.3),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  _recoveryKey!,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontFamily: 'monospace',
-                                    fontSize: 12,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: () {
-                                        // Copy to clipboard
-                                      },
-                                      icon: const Icon(Icons.copy),
-                                      label: const Text('Copy'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.white
-                                            .withValues(alpha: 0.2),
-                                        foregroundColor: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: () {
-                                        // Share recovery key
-                                      },
-                                      icon: const Icon(Icons.share),
-                                      label: const Text('Share'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.white
-                                            .withValues(alpha: 0.2),
-                                        foregroundColor: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              CheckboxListTile(
-                                value: false,
-                                onChanged: (value) {
-                                  // Confirm user has saved recovery key
-                                },
-                                title: Text(
-                                  'I have saved my recovery key safely',
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                activeColor: Colors.white,
-                                checkColor: Theme.of(
-                                  context,
-                                ).colorScheme.primary,
-                                controlAffinity:
-                                    ListTileControlAffinity.leading,
-                              ),
-                            ],
-                          ),
-                        )
-                        .animate()
-                        .fadeIn(duration: 600.ms)
-                        .scale(duration: 600.ms, curve: Curves.elasticOut),
-                  ],
-
                   const SizedBox(height: 24),
 
                   // Sign In Link
@@ -516,6 +343,82 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildEmailInputWithSuggestions() {
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: TextFormField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your email';
+              }
+              if (!RegExp(
+                r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+              ).hasMatch(value)) {
+                return 'Please enter a valid email';
+              }
+              return null;
+            },
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(Icons.email_outlined),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(16)),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+        if (_showEmailSuggestions) ...[
+          const SizedBox(height: 4),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: _emailSuggestions.take(5).map((domain) {
+                final text = _emailController.text;
+                final atIndex = text.lastIndexOf('@');
+                final username = atIndex != -1
+                    ? text.substring(0, atIndex)
+                    : '';
+                final fullEmail = '$username@$domain';
+
+                return ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.email, size: 16),
+                  title: Text(fullEmail, style: const TextStyle(fontSize: 14)),
+                  onTap: () => _selectEmailSuggestion(domain),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -571,12 +474,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   bool _getPasswordVisibility(TextEditingController controller) {
-    if (controller == _masterPasswordController ||
-        controller == _confirmMasterPasswordController) {
-      return controller == _masterPasswordController
-          ? _isMasterPasswordVisible
-          : _isConfirmMasterPasswordVisible;
-    } else if (controller == _confirmPasswordController) {
+    if (controller == _confirmPasswordController) {
       return _isConfirmPasswordVisible;
     } else {
       return _isPasswordVisible;
@@ -585,11 +483,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _togglePasswordVisibility(TextEditingController controller) {
     setState(() {
-      if (controller == _masterPasswordController) {
-        _isMasterPasswordVisible = !_isMasterPasswordVisible;
-      } else if (controller == _confirmMasterPasswordController) {
-        _isConfirmMasterPasswordVisible = !_isConfirmMasterPasswordVisible;
-      } else if (controller == _confirmPasswordController) {
+      if (controller == _confirmPasswordController) {
         _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
       } else {
         _isPasswordVisible = !_isPasswordVisible;
@@ -608,16 +502,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final result = await authProvider.register(
       email: _emailController.text.trim(),
       password: _passwordController.text,
-      masterPassword: '', // Will be set in next step
     );
 
     if (!mounted) return;
 
     if (result.success) {
-      setState(() {
-        _showMasterPasswordFields = true;
-        _recoveryKey = result.recoveryKey;
-      });
+      // Navigate to code confirmation screen
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => CodeConfirmationScreen(
+            email: _emailController.text.trim(),
+            recoveryKey: result.recoveryKey ?? '',
+          ),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -632,33 +530,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
   }
 
-  Future<void> _handleMasterPassword() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Complete the registration with master password
-    // This would typically involve updating the user settings
-    // For now, we'll just show success and navigate to login
-
-    await Future.delayed(const Duration(seconds: 1)); // Simulate API call
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Account created successfully! Please sign in.'),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
-  }
-
   void _goToLogin() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -667,11 +538,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
+    _emailController.removeListener(_onEmailChanged);
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _masterPasswordController.dispose();
-    _confirmMasterPasswordController.dispose();
     super.dispose();
   }
 }

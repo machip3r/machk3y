@@ -25,6 +25,79 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _showMasterPasswordField = false;
 
+  // Email suggestions
+  bool _showEmailSuggestions = false;
+  List<String> _emailSuggestions = [];
+  final List<String> _commonDomains = [
+    'gmail.com',
+    'yahoo.com',
+    'hotmail.com',
+    'outlook.com',
+    'yahoo.com.mx',
+    'hotmail.com.mx',
+    'live.com',
+    'icloud.com',
+    'aol.com',
+    'protonmail.com',
+    'yandex.com',
+    'mail.com',
+    'zoho.com',
+    'fastmail.com',
+    'tutanota.com',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_onEmailChanged);
+  }
+
+  void _onEmailChanged() {
+    final text = _emailController.text;
+    final atIndex = text.lastIndexOf('@');
+
+    if (atIndex != -1) {
+      final domainPart = text.substring(atIndex + 1);
+      if (domainPart.isNotEmpty) {
+        _emailSuggestions = _commonDomains
+            .where(
+              (domain) =>
+                  domain.toLowerCase().startsWith(domainPart.toLowerCase()),
+            )
+            .toList();
+        setState(() {
+          _showEmailSuggestions = _emailSuggestions.isNotEmpty;
+        });
+      } else {
+        setState(() {
+          _showEmailSuggestions = true;
+          _emailSuggestions = _commonDomains;
+        });
+      }
+    } else {
+      setState(() {
+        _showEmailSuggestions = false;
+      });
+    }
+  }
+
+  void _selectEmailSuggestion(String domain) {
+    final text = _emailController.text;
+    final atIndex = text.lastIndexOf('@');
+
+    if (atIndex != -1) {
+      final username = text.substring(0, atIndex);
+      _emailController.text = '$username@$domain';
+      _emailController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _emailController.text.length),
+      );
+    }
+
+    setState(() {
+      _showEmailSuggestions = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -99,24 +172,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 48),
 
-                  // Email Input
-                  _buildInputField(
-                        controller: _emailController,
-                        label: 'Email',
-                        icon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          if (!RegExp(
-                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                          ).hasMatch(value)) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
-                      )
+                  // Email Input with Suggestions
+                  _buildEmailInputWithSuggestions()
                       .animate()
                       .fadeIn(duration: 600.ms, delay: 600.ms)
                       .slideX(begin: -0.3, duration: 600.ms, delay: 600.ms),
@@ -317,6 +374,82 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _buildEmailInputWithSuggestions() {
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: TextFormField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your email';
+              }
+              if (!RegExp(
+                r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+              ).hasMatch(value)) {
+                return 'Please enter a valid email';
+              }
+              return null;
+            },
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(Icons.email_outlined),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(16)),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+        if (_showEmailSuggestions) ...[
+          const SizedBox(height: 4),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: _emailSuggestions.take(5).map((domain) {
+                final text = _emailController.text;
+                final atIndex = text.lastIndexOf('@');
+                final username = atIndex != -1
+                    ? text.substring(0, atIndex)
+                    : '';
+                final fullEmail = '$username@$domain';
+
+                return ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.email, size: 16),
+                  title: Text(fullEmail, style: const TextStyle(fontSize: 14)),
+                  onTap: () => _selectEmailSuggestion(domain),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildInputField({
     required TextEditingController controller,
     required String label,
@@ -390,25 +523,51 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final result = await authProvider.login(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-      masterPassword: _masterPasswordController.text,
-    );
 
-    if (!mounted) return;
-
-    if (!result.success) {
-      setState(() {
-        _showMasterPasswordField = true;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.error ?? 'Login failed'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
+    if (!_showMasterPasswordField) {
+      // First step: Initial login (email + password)
+      final result = await authProvider.initialLogin(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
+
+      if (!mounted) return;
+
+      if (result.success) {
+        setState(() {
+          _showMasterPasswordField = true;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.error ?? 'Login failed'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } else {
+      // Second step: Complete login with master password
+      final result = await authProvider.completeLogin(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        masterPassword: _masterPasswordController.text,
+      );
+
+      if (!mounted) return;
+
+      if (result.success) {
+        // Navigate to dashboard or main app
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/dashboard', (route) => false);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.error ?? 'Login failed'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
     }
 
     setState(() {
@@ -424,7 +583,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final result = await authProvider.login(
+    final result = await authProvider.completeLogin(
       email: _emailController.text.trim(),
       password: _passwordController.text,
       masterPassword: _masterPasswordController.text,
@@ -432,7 +591,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
 
-    if (!result.success) {
+    if (result.success) {
+      // Navigate to dashboard or main app
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/dashboard', (route) => false);
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result.error ?? 'Master password incorrect'),
@@ -460,6 +624,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _emailController.removeListener(_onEmailChanged);
     _emailController.dispose();
     _passwordController.dispose();
     _masterPasswordController.dispose();

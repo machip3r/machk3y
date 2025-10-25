@@ -16,10 +16,17 @@ class SupabaseService {
 
   // Initialize Supabase
   static Future<void> initialize() async {
-    await Supabase.initialize(
-      url: Env.supabaseUrl,
-      anonKey: Env.supabaseAnonKey,
-    );
+    try {
+      await Supabase.initialize(
+        url: Env.supabaseUrl,
+        anonKey: Env.supabaseAnonKey,
+        debug: Env.isDebug,
+      );
+      print('Supabase initialized successfully');
+    } catch (e) {
+      print('Supabase initialization error: $e');
+      rethrow;
+    }
   }
 
   // Authentication methods
@@ -34,6 +41,55 @@ class SupabaseService {
     );
   }
 
+  // Email confirmation methods using OTP codes
+  Future<void> resendConfirmationCode(String email) async {
+    await _supabase.auth.resend(type: OtpType.signup, email: email);
+  }
+
+  Future<AuthResponse> verifyConfirmationCode({
+    required String email,
+    required String token,
+  }) async {
+    return await _supabase.auth.verifyOTP(
+      type: OtpType.signup,
+      email: email,
+      token: token,
+    );
+  }
+
+  Future<User?> checkEmailConfirmation() async {
+    final user = getCurrentUser();
+    if (user != null && user.emailConfirmedAt != null) {
+      return user;
+    }
+    return null;
+  }
+
+  Future<bool> refreshSession() async {
+    try {
+      print('Attempting to refresh session...');
+      final currentSession = getCurrentSession();
+      if (currentSession?.refreshToken == null) {
+        print('No refresh token available');
+        return false;
+      }
+
+      final response = await _supabase.auth.setSession(
+        currentSession!.refreshToken!,
+      );
+      if (response.session != null) {
+        print('Session refreshed successfully');
+        return true;
+      } else {
+        print('Session refresh failed - no session returned');
+        return false;
+      }
+    } catch (e) {
+      print('Session refresh error: $e');
+      return false;
+    }
+  }
+
   Future<void> signOut() async {
     await _supabase.auth.signOut();
     await _encryption.clearAllData();
@@ -41,6 +97,43 @@ class SupabaseService {
 
   User? getCurrentUser() {
     return _supabase.auth.currentUser;
+  }
+
+  // Session management methods
+  Session? getCurrentSession() {
+    return _supabase.auth.currentSession;
+  }
+
+  Future<bool> isSessionValid() async {
+    final session = getCurrentSession();
+    if (session == null) return false;
+
+    // Check if session expires within the next 5 minutes
+    final expiresAt = DateTime.fromMillisecondsSinceEpoch(
+      session.expiresAt! * 1000,
+    );
+    final now = DateTime.now();
+    final timeUntilExpiry = expiresAt.difference(now);
+
+    print('Session expires in: ${timeUntilExpiry.inMinutes} minutes');
+    return timeUntilExpiry.inMinutes > 5;
+  }
+
+  Future<bool> ensureValidSession() async {
+    final user = getCurrentUser();
+    if (user == null) {
+      print('No current user found');
+      return false;
+    }
+
+    final isValid = await isSessionValid();
+    if (isValid) {
+      print('Session is valid');
+      return true;
+    }
+
+    print('Session is invalid or expiring soon, attempting refresh...');
+    return await refreshSession();
   }
 
   // User settings methods
@@ -65,6 +158,12 @@ class SupabaseService {
     String salt,
     String? encryptedRecoveryKey,
   ) async {
+    // Ensure we have a valid session before proceeding
+    final sessionValid = await ensureValidSession();
+    if (!sessionValid) {
+      throw Exception('Session expired. Please restart registration.');
+    }
+
     final user = getCurrentUser();
     if (user == null) throw Exception('User not authenticated');
 
