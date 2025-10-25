@@ -1,0 +1,370 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'core/services/supabase_service.dart';
+import 'core/services/storage_service.dart';
+import 'core/theme/app_theme.dart';
+import 'providers/auth_provider.dart';
+import 'providers/vault_provider.dart';
+import 'providers/theme_provider.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/dashboard/dashboard_screen.dart';
+import 'screens/onboarding/onboarding_screen.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize services
+  await SupabaseService.initialize();
+  await StorageService().initialize();
+
+  runApp(const MachK3yApp());
+}
+
+class MachK3yApp extends StatelessWidget {
+  const MachK3yApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => VaultProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: 'MachK3y',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme.copyWith(
+              textTheme: GoogleFonts.interTextTheme(
+                AppTheme.lightTheme.textTheme,
+              ),
+            ),
+            darkTheme: AppTheme.darkTheme.copyWith(
+              textTheme: GoogleFonts.interTextTheme(
+                AppTheme.darkTheme.textTheme,
+              ),
+            ),
+            themeMode: themeProvider.themeMode,
+            home: const AppWrapper(),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class AppWrapper extends StatelessWidget {
+  const AppWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer2<AuthProvider, StorageService>(
+      builder: (context, authProvider, storageService, child) {
+        return FutureBuilder<bool>(
+          future: _checkOnboardingStatus(storageService),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            final hasCompletedOnboarding = snapshot.data ?? false;
+
+            if (!hasCompletedOnboarding) {
+              return const OnboardingScreen();
+            }
+
+            if (!authProvider.isAuthenticated) {
+              return const LoginScreen();
+            }
+
+            if (!authProvider.isVaultUnlocked) {
+              return const VaultLockScreen();
+            }
+
+            return const DashboardScreen();
+          },
+        );
+      },
+    );
+  }
+
+  Future<bool> _checkOnboardingStatus(StorageService storageService) async {
+    return await storageService.isOnboardingCompleted();
+  }
+}
+
+class VaultLockScreen extends StatefulWidget {
+  const VaultLockScreen({super.key});
+
+  @override
+  State<VaultLockScreen> createState() => _VaultLockScreenState();
+}
+
+class _VaultLockScreenState extends State<VaultLockScreen> {
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isPasswordVisible = false;
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.primary,
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // App Icon
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.lock_outline,
+                    size: 60,
+                    color: Color(0xFF6366F1),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Title
+                Text(
+                  'Welcome Back!',
+                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                Text(
+                  'Enter your master password to unlock your vault',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 48),
+
+                // Password Input
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _passwordController,
+                    obscureText: !_isPasswordVisible,
+                    decoration: InputDecoration(
+                      hintText: 'Master Password',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isPasswordVisible
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        },
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    onSubmitted: (_) => _unlockVault(),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Unlock Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _unlockVault,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF6366F1),
+                              ),
+                            ),
+                          )
+                        : const Text(
+                            'Unlock Vault',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Biometric Unlock Button
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    return FutureBuilder<bool>(
+                      future: authProvider.isBiometricUnlockEnabled(),
+                      builder: (context, snapshot) {
+                        if (snapshot.data == true) {
+                          return TextButton(
+                            onPressed: _isLoading
+                                ? null
+                                : _unlockWithBiometrics,
+                            child: Text(
+                              'Unlock with Biometrics',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontSize: 16,
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 32),
+
+                // Logout Button
+                TextButton(
+                  onPressed: _logout,
+                  child: Text(
+                    'Logout',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _unlockVault() async {
+    if (_passwordController.text.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final result = await authProvider.unlockVault(_passwordController.text);
+
+    if (!mounted) return;
+
+    if (result.success) {
+      // Vault unlocked successfully
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.error ?? 'Failed to unlock vault'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _unlockWithBiometrics() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final result = await authProvider.unlockVaultWithBiometrics();
+
+    if (!mounted) return;
+
+    if (!result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.error ?? 'Biometric unlock failed'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _logout() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.logout();
+  }
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+}
