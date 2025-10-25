@@ -225,6 +225,10 @@ class StorageService {
     return await getPreference<bool>('onboarding_completed') ?? false;
   }
 
+  Future<void> resetOnboarding() async {
+    await deletePreference('onboarding_completed');
+  }
+
   // Backup and restore
   Future<void> createBackup(Map<String, dynamic> data) async {
     final backupJson = jsonEncode(data);

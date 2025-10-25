@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/app_constants.dart';
+import '../config/env.dart';
 import '../../models/credential.dart';
 import 'encryption_service.dart';
 
@@ -16,8 +17,8 @@ class SupabaseService {
   // Initialize Supabase
   static Future<void> initialize() async {
     await Supabase.initialize(
-      url: 'https://your-project.supabase.co', // Replace with your Supabase URL
-      anonKey: 'your-anon-key', // Replace with your Supabase anon key
+      url: Env.supabaseUrl,
+      anonKey: Env.supabaseAnonKey,
     );
   }
 

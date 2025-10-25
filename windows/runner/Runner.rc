@@ -93,7 +93,7 @@ BEGIN
             VALUE "FileDescription", "machk3y" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "machk3y" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2025 com.compubac. All rights reserved." "\0"
             VALUE "OriginalFilename", "machk3y.exe" "\0"
             VALUE "ProductName", "machk3y" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

@@ -31,6 +31,7 @@ class MachK3yApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => VaultProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        Provider<StorageService>(create: (_) => StorageService()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
@@ -56,45 +57,71 @@ class MachK3yApp extends StatelessWidget {
   }
 }
 
-class AppWrapper extends StatelessWidget {
+class AppWrapper extends StatefulWidget {
   const AppWrapper({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer2<AuthProvider, StorageService>(
-      builder: (context, authProvider, storageService, child) {
-        return FutureBuilder<bool>(
-          future: _checkOnboardingStatus(storageService),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
+  State<AppWrapper> createState() => _AppWrapperState();
+}
 
-            final hasCompletedOnboarding = snapshot.data ?? false;
+class _AppWrapperState extends State<AppWrapper> {
+  bool _hasCompletedOnboarding = false;
+  bool _isLoading = true;
 
-            if (!hasCompletedOnboarding) {
-              return const OnboardingScreen();
-            }
-
-            if (!authProvider.isAuthenticated) {
-              return const LoginScreen();
-            }
-
-            if (!authProvider.isVaultUnlocked) {
-              return const VaultLockScreen();
-            }
-
-            return const DashboardScreen();
-          },
-        );
-      },
-    );
+  @override
+  void initState() {
+    super.initState();
+    _checkOnboardingStatus();
   }
 
-  Future<bool> _checkOnboardingStatus(StorageService storageService) async {
-    return await storageService.isOnboardingCompleted();
+  Future<void> _checkOnboardingStatus() async {
+    final storageService = Provider.of<StorageService>(context, listen: false);
+    final completed = await storageService.isOnboardingCompleted();
+    if (mounted) {
+      setState(() {
+        _hasCompletedOnboarding = completed;
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _onOnboardingCompleted() {
+    setState(() {
+      _hasCompletedOnboarding = true;
+    });
+  }
+
+  void _resetOnboarding() async {
+    final storageService = Provider.of<StorageService>(context, listen: false);
+    await storageService.resetOnboarding();
+    setState(() {
+      _hasCompletedOnboarding = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        if (!_hasCompletedOnboarding) {
+          return OnboardingScreen(onCompleted: _onOnboardingCompleted);
+        }
+
+        if (!authProvider.isAuthenticated) {
+          return const LoginScreen();
+        }
+
+        if (!authProvider.isVaultUnlocked) {
+          return const VaultLockScreen();
+        }
+
+        return const DashboardScreen();
+      },
+    );
   }
 }
 
@@ -114,6 +141,8 @@ class _VaultLockScreenState extends State<VaultLockScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,

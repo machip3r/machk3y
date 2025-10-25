@@ -196,11 +196,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         checkColor: Theme.of(context).colorScheme.primary,
                       ),
                       Expanded(
-                        child: Text(
-                          'I agree to the Terms of Service and Privacy Policy',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontSize: 14,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _hasAcceptedTerms = !_hasAcceptedTerms;
+                            });
+                          },
+                          child: Text(
+                            'I agree to the Terms of Service and Privacy Policy',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 14,
+                            ),
                           ),
                         ),
                       ),
@@ -485,14 +492,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           fontSize: 14,
                         ),
                       ),
-                      TextButton(
-                        onPressed: _goToLogin,
-                        child: const Text(
-                          'Sign In',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                      SizedBox(
+                        width: 80,
+                        child: TextButton(
+                          onPressed: _goToLogin,
+                          child: const Text(
+                            'Sign In',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),

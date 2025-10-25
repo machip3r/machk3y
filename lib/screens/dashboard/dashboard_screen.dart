@@ -459,11 +459,14 @@ class DashboardHome extends StatelessWidget {
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                TextButton(
-                  onPressed: () {
-                    // Navigate to vault
-                  },
-                  child: const Text('View All'),
+                SizedBox(
+                  width: 80,
+                  child: TextButton(
+                    onPressed: () {
+                      // Navigate to vault
+                    },
+                    child: const Text('View All'),
+                  ),
                 ),
               ],
             ),

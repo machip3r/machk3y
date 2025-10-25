@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../core/config/env.dart';
+import '../../core/services/storage_service.dart';
 import 'register_screen.dart';
 import 'recovery_screen.dart';
 
@@ -261,14 +263,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontSize: 14,
                         ),
                       ),
-                      TextButton(
-                        onPressed: _goToRegister,
-                        child: const Text(
-                          'Sign Up',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                      SizedBox(
+                        width: 80,
+                        child: TextButton(
+                          onPressed: _goToRegister,
+                          child: const Text(
+                            'Sign Up',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
@@ -276,6 +281,33 @@ class _LoginScreenState extends State<LoginScreen> {
                   ).animate().fadeIn(duration: 600.ms, delay: 1000.ms),
 
                   const SizedBox(height: 40),
+
+                  // Debug: Reset Onboarding Button (remove in production)
+                  if (Env.isDebug)
+                    TextButton(
+                      onPressed: () async {
+                        final storageService = Provider.of<StorageService>(
+                          context,
+                          listen: false,
+                        );
+                        await storageService.resetOnboarding();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Onboarding reset! Restart the app to see onboarding again.',
+                            ),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      },
+                      child: Text(
+                        'Reset Onboarding (Debug)',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

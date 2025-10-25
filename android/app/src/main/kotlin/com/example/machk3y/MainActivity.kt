@@ -1,4 +1,4 @@
-package com.example.machk3y
+package com.compubac.machk3y
 
 import io.flutter.embedding.android.FlutterActivity
 

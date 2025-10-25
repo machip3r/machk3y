@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../../core/services/storage_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key});
+  final VoidCallback? onCompleted;
+
+  const OnboardingScreen({super.key, this.onCompleted});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -74,13 +76,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const SizedBox(width: 60), // Placeholder for balance
-                    TextButton(
-                      onPressed: _completeOnboarding,
-                      child: Text(
-                        'Skip',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8),
-                          fontSize: 16,
+                    SizedBox(
+                      width: 60,
+                      child: TextButton(
+                        onPressed: _completeOnboarding,
+                        child: Text(
+                          'Skip',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ),
@@ -134,13 +139,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   children: [
                     // Previous Button
                     if (_currentPage > 0)
-                      TextButton(
-                        onPressed: _previousPage,
-                        child: Text(
-                          'Previous',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.8),
-                            fontSize: 16,
+                      SizedBox(
+                        width: 100,
+                        child: TextButton(
+                          onPressed: _previousPage,
+                          child: Text(
+                            'Previous',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 16,
+                            ),
                           ),
                         ),
                       )
@@ -148,28 +156,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       const SizedBox(width: 80),
 
                     // Next/Get Started Button
-                    ElevatedButton(
-                      onPressed: _currentPage == _totalPages - 1
-                          ? _completeOnboarding
-                          : _nextPage,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: _pages[_currentPage].color,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
+                    SizedBox(
+                      width: 150,
+                      child: ElevatedButton(
+                        onPressed: _currentPage == _totalPages - 1
+                            ? _completeOnboarding
+                            : _nextPage,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: _pages[_currentPage].color,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 30,
+                            vertical: 16,
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
-                        ),
-                      ),
-                      child: Text(
-                        _currentPage == _totalPages - 1
-                            ? 'Get Started'
-                            : 'Next',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                        child: Text(
+                          _currentPage == _totalPages - 1
+                              ? 'Get Started'
+                              : 'Next',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -277,6 +288,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _completeOnboarding() async {
     final storageService = Provider.of<StorageService>(context, listen: false);
     await storageService.setOnboardingCompleted(true);
+
+    // Call the callback to notify parent widget
+    if (widget.onCompleted != null) {
+      widget.onCompleted!();
+    }
   }
 }
 
