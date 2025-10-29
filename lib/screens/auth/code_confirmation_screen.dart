@@ -111,7 +111,9 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
                   color: AppTheme.surfaceColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppTheme.onSurfaceVariantColor.withOpacity(0.2),
+                    color: AppTheme.onSurfaceVariantColor.withValues(
+                      alpha: 0.2,
+                    ),
                   ),
                 ),
                 child: Row(
@@ -163,16 +165,16 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: AppTheme.onSurfaceVariantColor.withOpacity(
-                                0.3,
+                              color: AppTheme.onSurfaceVariantColor.withValues(
+                                alpha: 0.3,
                               ),
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: AppTheme.onSurfaceVariantColor.withOpacity(
-                                0.3,
+                              color: AppTheme.onSurfaceVariantColor.withValues(
+                                alpha: 0.3,
                               ),
                             ),
                           ),
@@ -206,10 +208,10 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppTheme.primaryColor.withOpacity(0.3),
+                    color: AppTheme.primaryColor.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -240,10 +242,10 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.dangerColor.withOpacity(0.1),
+                    color: AppTheme.dangerColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: AppTheme.dangerColor.withOpacity(0.3),
+                      color: AppTheme.dangerColor.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -272,10 +274,10 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.successColor.withOpacity(0.1),
+                    color: AppTheme.successColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: AppTheme.successColor.withOpacity(0.3),
+                      color: AppTheme.successColor.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(

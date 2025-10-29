@@ -56,14 +56,42 @@ class AppWrapper extends StatefulWidget {
   State<AppWrapper> createState() => _AppWrapperState();
 }
 
-class _AppWrapperState extends State<AppWrapper> {
+class _AppWrapperState extends State<AppWrapper> with WidgetsBindingObserver {
   bool _hasCompletedOnboarding = false;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkOnboardingStatus();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // App came to foreground - try biometric unlock
+      _tryBiometricUnlock();
+    }
+  }
+
+  Future<void> _tryBiometricUnlock() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    // Only try if user is authenticated but vault is locked
+    if (authProvider.isAuthenticated && !authProvider.isVaultUnlocked) {
+      final isBiometricEnabled = await authProvider.isBiometricUnlockEnabled();
+      if (isBiometricEnabled) {
+        // Attempt biometric unlock
+        await authProvider.unlockVaultWithBiometrics();
+      }
+    }
   }
 
   Future<void> _checkOnboardingStatus() async {
@@ -83,14 +111,6 @@ class _AppWrapperState extends State<AppWrapper> {
     });
   }
 
-  void _resetOnboarding() async {
-    final storageService = Provider.of<StorageService>(context, listen: false);
-    await storageService.resetOnboarding();
-    setState(() {
-      _hasCompletedOnboarding = false;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -101,14 +121,20 @@ class _AppWrapperState extends State<AppWrapper> {
       builder: (context, authProvider, child) {
         Widget screen;
 
-        if (!_hasCompletedOnboarding) {
-          screen = OnboardingScreen(onCompleted: _onOnboardingCompleted);
-        } else if (!authProvider.isAuthenticated) {
-          screen = const LoginScreen();
-        } else if (!authProvider.isVaultUnlocked) {
-          screen = const VaultLockScreen();
+        // If user is authenticated, skip onboarding
+        if (authProvider.isAuthenticated) {
+          if (!authProvider.isVaultUnlocked) {
+            screen = const VaultLockScreen();
+          } else {
+            screen = const DashboardScreen();
+          }
         } else {
-          screen = const DashboardScreen();
+          // User is not authenticated - show onboarding if not completed
+          if (!_hasCompletedOnboarding) {
+            screen = OnboardingScreen(onCompleted: _onOnboardingCompleted);
+          } else {
+            screen = const LoginScreen();
+          }
         }
 
         // Wrap with Stack to add debug FAB overlay
@@ -134,6 +160,40 @@ class _VaultLockScreenState extends State<VaultLockScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  bool _hasTriedBiometric = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Try biometric unlock when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _tryBiometricUnlock();
+    });
+  }
+
+  Future<void> _tryBiometricUnlock() async {
+    if (_hasTriedBiometric) return;
+
+    setState(() {
+      _hasTriedBiometric = true;
+    });
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    final isBiometricEnabled = await authProvider.isBiometricUnlockEnabled();
+    if (isBiometricEnabled) {
+      final result = await authProvider.unlockVaultWithBiometrics();
+      if (!result.success) {
+        setState(() {
+          _hasTriedBiometric = false;
+        });
+      }
+    } else {
+      setState(() {
+        _hasTriedBiometric = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -172,10 +232,10 @@ class _VaultLockScreenState extends State<VaultLockScreen> {
                       ),
                     ],
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.lock_outline,
                     size: 60,
-                    color: Color(0xFF6366F1),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
 
@@ -285,13 +345,13 @@ class _VaultLockScreenState extends State<VaultLockScreen> {
 
                 const SizedBox(height: 16),
 
-                // Biometric Unlock Button
+                // Biometric Unlock Button (manual trigger)
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
                     return FutureBuilder<bool>(
                       future: authProvider.isBiometricUnlockEnabled(),
                       builder: (context, snapshot) {
-                        if (snapshot.data == true) {
+                        if (snapshot.data == true && !_hasTriedBiometric) {
                           return TextButton(
                             onPressed: _isLoading
                                 ? null

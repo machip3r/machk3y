@@ -395,6 +395,10 @@ class AuthProvider extends ChangeNotifier {
     return await _authService.isBiometricUnlockEnabled();
   }
 
+  Future<bool> checkBiometricAvailability() async {
+    return await _authService.checkBiometricAvailability();
+  }
+
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();

@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import '../core/services/supabase_service.dart';
 import '../core/services/storage_service.dart';
 import '../core/services/password_service.dart';
+import '../core/services/auth_service.dart';
 import '../models/credential.dart';
 
 class VaultProvider extends ChangeNotifier {
   final SupabaseService _supabaseService = SupabaseService();
   final StorageService _storageService = StorageService();
   final PasswordService _passwordService = PasswordService();
+  final AuthService _authService = AuthService();
 
   List<Credential> _credentials = [];
   List<Credential> _filteredCredentials = [];
@@ -17,13 +19,19 @@ class VaultProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   bool _isRefreshing = false;
+  bool _isLoadingMore = false;
   String? _error;
   String _searchQuery = '';
   CredentialType? _selectedType;
   String? _selectedTag;
-  String _sortBy = 'updated_at';
-  bool _sortAscending = false;
+  String _sortBy = 'title';
+  bool _sortAscending = true;
   bool _showStarredOnly = false;
+
+  // Pagination
+  static const int _pageSize = 20;
+  int _currentOffset = 0;
+  bool _hasMore = true;
 
   // Getters
   List<Credential> get credentials => _credentials;
@@ -33,6 +41,8 @@ class VaultProvider extends ChangeNotifier {
   List<String> get searchHistory => _searchHistory;
   bool get isLoading => _isLoading;
   bool get isRefreshing => _isRefreshing;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
   String? get error => _error;
   String get searchQuery => _searchQuery;
   CredentialType? get selectedType => _selectedType;
@@ -51,20 +61,44 @@ class VaultProvider extends ChangeNotifier {
   }
 
   Future<void> _loadCachedData() async {
-    _credentials = await _storageService.getCachedCredentials();
+    // Don't load cached credentials - it will be loaded fresh from server
+    // to ensure we only get current user's credentials
     _securityStats =
         await _storageService.getCachedSecurityStats() ?? SecurityStats.empty();
     _tags = await _storageService.getCachedTags();
     _searchHistory = await _storageService.getSearchHistory();
-    _applyFilters();
   }
 
-  Future<void> loadCredentials() async {
+  Future<void> loadCredentials({bool refresh = false}) async {
+    if (refresh) {
+      _credentials.clear();
+      _currentOffset = 0;
+      _hasMore = true;
+    }
+
     _setLoading(true);
     _clearError();
 
     try {
-      _credentials = await _supabaseService.getCredentials();
+      final newCredentials = await _supabaseService.getCredentials(
+        limit: _pageSize,
+        offset: refresh ? 0 : _currentOffset,
+      );
+
+      if (refresh) {
+        _credentials = newCredentials;
+      } else {
+        // Filter out duplicates before adding
+        final existingIds = _credentials.map((c) => c.id).toSet();
+        final uniqueCredentials = newCredentials
+            .where((c) => !existingIds.contains(c.id))
+            .toList();
+        _credentials.addAll(uniqueCredentials);
+      }
+
+      _currentOffset = _credentials.length;
+      _hasMore = newCredentials.length == _pageSize;
+
       await _storageService.cacheCredentials(_credentials);
 
       await _loadSecurityStats();
@@ -78,18 +112,43 @@ class VaultProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadMoreCredentials() async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    _setLoadingMore(true);
+    _clearError();
+
+    try {
+      final newCredentials = await _supabaseService.getCredentials(
+        limit: _pageSize,
+        offset: _currentOffset,
+      );
+
+      // Filter out duplicates before adding
+      final existingIds = _credentials.map((c) => c.id).toSet();
+      final uniqueCredentials = newCredentials
+          .where((c) => !existingIds.contains(c.id))
+          .toList();
+      _credentials.addAll(uniqueCredentials);
+      _currentOffset = _credentials.length;
+      _hasMore = newCredentials.length == _pageSize;
+
+      await _storageService.cacheCredentials(_credentials);
+
+      _applyFilters();
+    } catch (e) {
+      _setError('Failed to load more credentials: ${e.toString()}');
+    } finally {
+      _setLoadingMore(false);
+    }
+  }
+
   Future<void> refreshCredentials() async {
     _setRefreshing(true);
     _clearError();
 
     try {
-      _credentials = await _supabaseService.getCredentials();
-      await _storageService.cacheCredentials(_credentials);
-
-      await _loadSecurityStats();
-      await _loadTags();
-
-      _applyFilters();
+      await loadCredentials(refresh: true);
     } catch (e) {
       _setError('Failed to refresh credentials: ${e.toString()}');
     } finally {
@@ -239,14 +298,21 @@ class VaultProvider extends ChangeNotifier {
     _searchQuery = '';
     _selectedType = null;
     _selectedTag = null;
-    _sortBy = 'updated_at';
-    _sortAscending = false;
+    _sortBy = 'title';
+    _sortAscending = true;
     _showStarredOnly = false;
     _applyFilters();
   }
 
   void _applyFilters() {
-    List<Credential> filtered = List.from(_credentials);
+    // Filter by current user to ensure no credentials from other users
+    final currentUser = _authService.getCurrentUser();
+    List<Credential> filtered = _credentials
+        .where(
+          (credential) =>
+              currentUser != null && credential.userId == currentUser.id,
+        )
+        .toList();
 
     // Apply search filter
     if (_searchQuery.isNotEmpty) {
@@ -280,28 +346,29 @@ class VaultProvider extends ChangeNotifier {
       filtered = filtered.where((credential) => credential.isStarred).toList();
     }
 
-    // Apply sorting
-    filtered.sort((a, b) {
-      int comparison = 0;
+    // Apply sorting - only sort client-side for encrypted fields (title, username)
+    // Database-level fields (created_at, updated_at) are already sorted from DB
+    if (_sortBy == 'title' || _sortBy == 'username') {
+      filtered.sort((a, b) {
+        int comparison = 0;
 
-      switch (_sortBy) {
-        case 'title':
-          comparison = a.title.compareTo(b.title);
-          break;
-        case 'username':
-          comparison = a.username.compareTo(b.username);
-          break;
-        case 'created_at':
-          comparison = a.createdAt.compareTo(b.createdAt);
-          break;
-        case 'updated_at':
-        default:
-          comparison = a.updatedAt.compareTo(b.updatedAt);
-          break;
-      }
+        switch (_sortBy) {
+          case 'title':
+            comparison = a.title.toLowerCase().compareTo(b.title.toLowerCase());
+            break;
+          case 'username':
+            comparison = a.username.toLowerCase().compareTo(
+              b.username.toLowerCase(),
+            );
+            break;
+          default:
+            break;
+        }
 
-      return _sortAscending ? comparison : -comparison;
-    });
+        return _sortAscending ? comparison : -comparison;
+      });
+    }
+    // For DB-sorted fields (created_at, updated_at), data is already sorted from query
 
     _filteredCredentials = filtered;
     notifyListeners();
@@ -398,6 +465,11 @@ class VaultProvider extends ChangeNotifier {
 
   void _setRefreshing(bool refreshing) {
     _isRefreshing = refreshing;
+    notifyListeners();
+  }
+
+  void _setLoadingMore(bool loading) {
+    _isLoadingMore = loading;
     notifyListeners();
   }
 

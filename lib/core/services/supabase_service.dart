@@ -190,16 +190,25 @@ class SupabaseService {
   }
 
   // Credential methods
-  Future<List<Credential>> getCredentials() async {
+  Future<List<Credential>> getCredentials({int? limit, int? offset}) async {
     final user = getCurrentUser();
     if (user == null) return [];
 
     try {
-      final response = await _supabase
+      var query = _supabase
           .from('encrypted_credentials')
           .select()
           .eq('user_id', user.id)
-          .order('updated_at', ascending: false);
+          .order('title', ascending: true);
+
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+      if (offset != null && limit != null) {
+        query = query.range(offset, offset + limit - 1);
+      }
+
+      final response = await query;
 
       final credentials = <Credential>[];
       final masterKey = _encryption.getMasterKey();

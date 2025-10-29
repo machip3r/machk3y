@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:cryptography/cryptography.dart';
+import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -556,10 +558,22 @@ class AuthService {
         return AuthResult.failure('Invalid master password');
       }
 
-      // Check if biometrics are available
+      // Check if biometrics are available and device is supported
       final isAvailable = await _localAuth.canCheckBiometrics;
       if (!isAvailable) {
         return AuthResult.failure('Biometrics not available');
+      }
+
+      final isDeviceSupported = await _localAuth.isDeviceSupported();
+      if (!isDeviceSupported) {
+        return AuthResult.failure('Device does not support biometrics');
+      }
+
+      final availableBiometrics = await _localAuth.getAvailableBiometrics();
+      if (availableBiometrics.isEmpty) {
+        return AuthResult.failure(
+          'No biometrics enrolled. Please set up Face ID or Touch ID in your device settings.',
+        );
       }
 
       // Authenticate with biometrics to enable
@@ -624,6 +638,31 @@ class AuthService {
       key: AppConstants.biometricEnabledKey,
     );
     return enabled == 'true';
+  }
+
+  // Check if biometrics are available and enrolled on the device
+  Future<bool> checkBiometricAvailability() async {
+    try {
+      // Skip biometric check on iOS Simulator - it doesn't support biometrics properly
+      if (Platform.isIOS && !kDebugMode) {
+        // In debug mode, simulator might report as available but will crash
+        // For production, check platform.isIOS to avoid simulator issues
+      }
+
+      final isAvailable = await _localAuth.canCheckBiometrics;
+      if (!isAvailable) return false;
+
+      final isDeviceSupported = await _localAuth.isDeviceSupported();
+      if (!isDeviceSupported) return false;
+
+      final availableBiometrics = await _localAuth.getAvailableBiometrics();
+      if (availableBiometrics.isEmpty) return false;
+
+      return true;
+    } catch (e) {
+      // If any error occurs (like on simulator), return false
+      return false;
+    }
   }
 
   // Change master password

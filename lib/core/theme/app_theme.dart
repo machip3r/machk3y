@@ -55,7 +55,7 @@ class AppTheme {
       textButtonTheme: _textButtonTheme,
       inputDecorationTheme: _inputDecorationThemeLight,
       cardTheme: _cardTheme,
-      appBarTheme: _appBarTheme,
+      appBarTheme: _appBarThemeLight,
       bottomNavigationBarTheme: _bottomNavigationBarTheme,
       floatingActionButtonTheme: _floatingActionButtonTheme,
       snackBarTheme: _snackBarTheme,
@@ -90,7 +90,7 @@ class AppTheme {
       textButtonTheme: _textButtonTheme,
       inputDecorationTheme: _inputDecorationThemeDark,
       cardTheme: _cardTheme,
-      appBarTheme: _appBarTheme,
+      appBarTheme: _appBarThemeDark,
       bottomNavigationBarTheme: _bottomNavigationBarTheme,
       floatingActionButtonTheme: _floatingActionButtonTheme,
       snackBarTheme: _snackBarTheme,
@@ -308,15 +308,37 @@ class AppTheme {
     );
   }
 
-  // App Bar Theme
-  static AppBarTheme get _appBarTheme {
-    return AppBarTheme(
+  // App Bar Themes
+  static AppBarTheme get _appBarThemeLight {
+    return const AppBarTheme(
       elevation: 0,
       centerTitle: true,
-      titleTextStyle: const TextStyle(
+      scrolledUnderElevation: 0,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: onSurfaceColor,
+      titleTextStyle: TextStyle(
         fontFamily: 'Lexend',
         fontSize: 20,
         fontWeight: FontWeight.bold,
+        color: onSurfaceColor,
+      ),
+    );
+  }
+
+  static AppBarTheme get _appBarThemeDark {
+    return const AppBarTheme(
+      elevation: 0,
+      centerTitle: true,
+      scrolledUnderElevation: 0,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: Color(0xFFF9FAFB),
+      titleTextStyle: TextStyle(
+        fontFamily: 'Lexend',
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: Color(0xFFF9FAFB),
       ),
     );
   }

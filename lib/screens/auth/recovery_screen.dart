@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -580,6 +581,9 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
             keyboardType: TextInputType.emailAddress,
             textCapitalization: TextCapitalization.none,
             textInputAction: TextInputAction.next,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp('[a-z0-9@.]')),
+            ],
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Please enter your email';
