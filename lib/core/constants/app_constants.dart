@@ -1,6 +1,6 @@
 class AppConstants {
   // App Info
-  static const String appName = 'MachK3y';
+  static const String appName = 'MachKey';
   static const String appVersion = '1.0.0';
 
   // Security

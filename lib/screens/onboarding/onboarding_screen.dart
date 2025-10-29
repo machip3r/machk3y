@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/theme/app_theme.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final VoidCallback? onCompleted;
@@ -19,12 +20,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<OnboardingPage> _pages = [
     OnboardingPage(
-      title: 'Welcome to MachK3y',
+      title: 'Welcome to MachKey',
       subtitle: 'Your secure password manager',
       description:
           'Store all your passwords safely with end-to-end encryption. Only you can access your data.',
       icon: Icons.security,
-      color: const Color(0xFF6366F1),
+      lightColor: AppTheme.primaryColor,
+      darkColor: AppTheme.primaryLight,
     ),
     OnboardingPage(
       title: 'Zero-Knowledge Security',
@@ -32,7 +34,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       description:
           'All your passwords are encrypted on your device before being stored. We never see your data.',
       icon: Icons.lock_outline,
-      color: const Color(0xFF10B981),
+      lightColor: AppTheme.successColor,
+      darkColor: const Color(0xFF4CAF50),
     ),
     OnboardingPage(
       title: 'Smart Password Generator',
@@ -40,7 +43,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       description:
           'Generate secure passwords with customizable options. Never use weak passwords again.',
       icon: Icons.vpn_key,
-      color: const Color(0xFFF59E0B),
+      lightColor: AppTheme.infoColor,
+      darkColor: const Color(0xFF42A5F5),
     ),
     OnboardingPage(
       title: 'Security Audit',
@@ -48,22 +52,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       description:
           'Get alerts for weak, reused, or compromised passwords. Stay one step ahead of threats.',
       icon: Icons.shield_outlined,
-      color: const Color(0xFFEF4444),
+      lightColor: const Color(0xFFE53935),
+      darkColor: const Color(0xFFEF5350),
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentPage = _pages[_currentPage];
+    final pageColor = isDark ? currentPage.darkColor : currentPage.lightColor;
+
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              _pages[_currentPage].color,
-              _pages[_currentPage].color.withValues(alpha: 0.8),
-            ],
+            colors: [pageColor, pageColor.withValues(alpha: 0.8)],
           ),
         ),
         child: SafeArea(
@@ -104,7 +111,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   },
                   itemCount: _totalPages,
                   itemBuilder: (context, index) {
-                    return _buildPage(_pages[index]);
+                    final isDark =
+                        Theme.of(context).brightness == Brightness.dark;
+                    final page = _pages[index];
+                    final pageColor = isDark ? page.darkColor : page.lightColor;
+                    return _buildPage(page, pageColor);
                   },
                 ),
               ),
@@ -146,6 +157,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           child: Text(
                             'Previous',
                             style: TextStyle(
+                              fontFamily: Theme.of(
+                                context,
+                              ).textTheme.displayMedium?.fontFamily,
                               color: Colors.white.withValues(alpha: 0.8),
                               fontSize: 16,
                             ),
@@ -164,12 +178,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             : _nextPage,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
-                          foregroundColor: _pages[_currentPage].color,
+                          foregroundColor: pageColor,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(24),
                           ),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 30,
+                            horizontal: 20,
                             vertical: 16,
                           ),
                         ),
@@ -177,7 +191,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           _currentPage == _totalPages - 1
                               ? 'Get Started'
                               : 'Next',
-                          style: const TextStyle(
+                          style: TextStyle(
+                            fontFamily: Theme.of(
+                              context,
+                            ).textTheme.displaySmall?.fontFamily,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -194,7 +211,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildPage(OnboardingPage page) {
+  Widget _buildPage(OnboardingPage page, Color pageColor) {
     return Padding(
       padding: const EdgeInsets.all(32.0),
       child: Column(
@@ -215,7 +232,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ],
             ),
-            child: Icon(page.icon, size: 60, color: page.color),
+            child: Icon(page.icon, size: 60, color: pageColor),
           ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
 
           const SizedBox(height: 48),
@@ -301,13 +318,15 @@ class OnboardingPage {
   final String subtitle;
   final String description;
   final IconData icon;
-  final Color color;
+  final Color lightColor;
+  final Color darkColor;
 
   OnboardingPage({
     required this.title,
     required this.subtitle,
     required this.description,
     required this.icon,
-    required this.color,
+    required this.lightColor,
+    required this.darkColor,
   });
 }

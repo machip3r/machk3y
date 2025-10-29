@@ -214,6 +214,9 @@ class AuthService {
       );
       print('User settings created');
 
+      // Store salt in secure storage for session persistence
+      await _encryption.storeSalt(salt);
+
       // Set session keys
       _encryption.setMasterKey(masterKey);
       _encryption.setSalt(salt);
@@ -300,6 +303,9 @@ class AuthService {
 
       // Store master password hash
       await _encryption.storeMasterKeyHash(masterPassword);
+
+      // Store salt in secure storage for session persistence
+      await _encryption.storeSalt(salt);
 
       // Set session keys
       _encryption.setMasterKey(masterKey);

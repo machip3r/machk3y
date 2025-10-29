@@ -419,8 +419,8 @@ class _MasterPasswordSetupScreenState extends State<MasterPasswordSetupScreen> {
 
   void _shareRecoveryKey() {
     Share.share(
-      'My MachK3y Recovery Key:\n\n${widget.recoveryKey}\n\nSave this key safely - you\'ll need it to recover your vault if you forget your master password.',
-      subject: 'MachK3y Recovery Key',
+      'My MachKey Recovery Key:\n\n${widget.recoveryKey}\n\nSave this key safely - you\'ll need it to recover your vault if you forget your master password.',
+      subject: 'MachKey Recovery Key',
     );
   }
 

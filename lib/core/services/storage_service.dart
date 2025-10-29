@@ -54,7 +54,22 @@ class StorageService {
   Future<T?> getPreference<T>(String key) async {
     if (_prefs == null) await initialize();
 
-    return _prefs!.get(key) as T?;
+    // Use pattern matching to determine the type
+    if (T.toString() == 'String') {
+      return _prefs!.getString(key) as T?;
+    } else if (T.toString() == 'int') {
+      return _prefs!.getInt(key) as T?;
+    } else if (T.toString() == 'double') {
+      return _prefs!.getDouble(key) as T?;
+    } else if (T.toString() == 'bool') {
+      return _prefs!.getBool(key) as T?;
+    } else if (T.toString() == 'List<String>') {
+      return _prefs!.getStringList(key) as T?;
+    }
+
+    // Fallback for other types
+    final value = _prefs!.get(key);
+    return value as T?;
   }
 
   Future<void> deletePreference(String key) async {
@@ -163,11 +178,13 @@ class StorageService {
 
   // Tags cache
   Future<void> cacheTags(List<String> tags) async {
-    await storePreference('cached_tags', tags);
+    if (_prefs == null) await initialize();
+    await _prefs!.setStringList('cached_tags', tags);
   }
 
   Future<List<String>> getCachedTags() async {
-    return await getPreference<List<String>>('cached_tags') ?? [];
+    if (_prefs == null) await initialize();
+    return _prefs!.getStringList('cached_tags') ?? [];
   }
 
   Future<void> clearTagsCache() async {
@@ -187,11 +204,13 @@ class StorageService {
       history.removeRange(10, history.length);
     }
 
-    await storePreference('search_history', history);
+    if (_prefs == null) await initialize();
+    await _prefs!.setStringList('search_history', history);
   }
 
   Future<List<String>> getSearchHistory() async {
-    return await getPreference<List<String>>('search_history') ?? [];
+    if (_prefs == null) await initialize();
+    return _prefs!.getStringList('search_history') ?? [];
   }
 
   Future<void> clearSearchHistory() async {

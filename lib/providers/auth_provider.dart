@@ -24,8 +24,27 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _initialize() async {
-    _isAuthenticated = _authService.isLoggedIn();
-    _isVaultUnlocked = _authService.isVaultUnlocked;
+    // Check if there's a valid Supabase session
+    final user = _authService.getCurrentUser();
+    if (user != null) {
+      // User has an active session
+      _isAuthenticated = true;
+
+      // Default vault to locked on app restart for security
+      // User needs to unlock vault with master password
+      _isVaultUnlocked = false;
+
+      // Set vault as locked on app startup (unless we're in the middle of login)
+      await _storageService.setVaultLocked(true);
+
+      print(
+        'Session restored: User ${user.id} is authenticated, vault is locked',
+      );
+    } else {
+      _isAuthenticated = false;
+      _isVaultUnlocked = false;
+      print('No active session found');
+    }
     notifyListeners();
   }
 
@@ -75,6 +94,7 @@ class AuthProvider extends ChangeNotifier {
         _isAuthenticated = true;
         _isVaultUnlocked = true;
         await _storageService.updateLastActiveTime();
+        await _storageService.setVaultLocked(false); // Mark vault as unlocked
       } else {
         _setError(result.error ?? 'Registration completion failed');
       }
@@ -147,6 +167,7 @@ class AuthProvider extends ChangeNotifier {
         _isAuthenticated = true;
         _isVaultUnlocked = true;
         await _storageService.updateLastActiveTime();
+        await _storageService.setVaultLocked(false); // Mark vault as unlocked
       } else {
         _setError(result.error ?? 'Login failed');
       }

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'core/services/supabase_service.dart';
 import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/vault_provider.dart';
 import 'providers/theme_provider.dart';
+import 'widgets/debug_theme_toggle.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
@@ -36,18 +36,10 @@ class MachK3yApp extends StatelessWidget {
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return MaterialApp(
-            title: 'MachK3y',
+            title: 'MachKey',
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme.copyWith(
-              textTheme: GoogleFonts.interTextTheme(
-                AppTheme.lightTheme.textTheme,
-              ),
-            ),
-            darkTheme: AppTheme.darkTheme.copyWith(
-              textTheme: GoogleFonts.interTextTheme(
-                AppTheme.darkTheme.textTheme,
-              ),
-            ),
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
             home: const AppWrapper(),
           );
@@ -107,19 +99,25 @@ class _AppWrapperState extends State<AppWrapper> {
 
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
+        Widget screen;
+
         if (!_hasCompletedOnboarding) {
-          return OnboardingScreen(onCompleted: _onOnboardingCompleted);
+          screen = OnboardingScreen(onCompleted: _onOnboardingCompleted);
+        } else if (!authProvider.isAuthenticated) {
+          screen = const LoginScreen();
+        } else if (!authProvider.isVaultUnlocked) {
+          screen = const VaultLockScreen();
+        } else {
+          screen = const DashboardScreen();
         }
 
-        if (!authProvider.isAuthenticated) {
-          return const LoginScreen();
-        }
-
-        if (!authProvider.isVaultUnlocked) {
-          return const VaultLockScreen();
-        }
-
-        return const DashboardScreen();
+        // Wrap with Stack to add debug FAB overlay
+        return Stack(
+          children: [
+            screen,
+            Positioned(bottom: 16, right: 16, child: const DebugThemeToggle()),
+          ],
+        );
       },
     );
   }

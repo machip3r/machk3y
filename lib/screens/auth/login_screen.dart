@@ -24,6 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isMasterPasswordVisible = false;
   bool _isLoading = false;
   bool _showMasterPasswordField = false;
+  bool _isInitialLoginComplete = false;
 
   // Email suggestions
   bool _showEmailSuggestions = false;
@@ -101,271 +102,275 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
-            ],
+      backgroundColor: Colors.transparent,
+      body: SizedBox(
+        height: MediaQuery.of(context).size.height,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).colorScheme.primary,
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+              ],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 40),
+          child: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 60),
 
-                  // App Logo
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.lock_outline,
-                      size: 60,
-                      color: Color(0xFF6366F1),
-                    ),
-                  ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
-
-                  const SizedBox(height: 32),
-
-                  // Welcome Text
-                  Text(
-                        'Welcome Back!',
-                        style: Theme.of(context).textTheme.displayMedium
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                        textAlign: TextAlign.center,
-                      )
-                      .animate()
-                      .fadeIn(duration: 800.ms, delay: 200.ms)
-                      .slideY(begin: 0.3, duration: 800.ms, delay: 200.ms),
-
-                  const SizedBox(height: 8),
-
-                  Text(
-                    'Sign in to access your secure vault',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                    textAlign: TextAlign.center,
-                  ).animate().fadeIn(duration: 800.ms, delay: 400.ms),
-
-                  const SizedBox(height: 48),
-
-                  // Email Input with Suggestions
-                  _buildEmailInputWithSuggestions()
-                      .animate()
-                      .fadeIn(duration: 600.ms, delay: 600.ms)
-                      .slideX(begin: -0.3, duration: 600.ms, delay: 600.ms),
-
-                  const SizedBox(height: 16),
-
-                  // Password Input
-                  _buildInputField(
-                        controller: _passwordController,
-                        label: 'Password',
-                        icon: Icons.lock_outline,
-                        isPassword: true,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          return null;
-                        },
-                      )
-                      .animate()
-                      .fadeIn(duration: 600.ms, delay: 700.ms)
-                      .slideX(begin: -0.3, duration: 600.ms, delay: 700.ms),
-
-                  const SizedBox(height: 24),
-
-                  // Login Button
-                  ElevatedButton(
-                        onPressed: _isLoading ? null : _handleLogin,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Color(0xFF6366F1),
-                                  ),
+                      // Welcome Text
+                      Text(
+                            'Welcome Back!',
+                            style: Theme.of(context).textTheme.displayMedium
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              )
-                            : const Text(
-                                'Sign In',
+                            textAlign: TextAlign.center,
+                          )
+                          .animate()
+                          .fadeIn(duration: 800.ms, delay: 200.ms)
+                          .slideY(begin: 0.3, duration: 800.ms, delay: 200.ms),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        'Sign in to access your secure vault',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                        textAlign: TextAlign.center,
+                      ).animate().fadeIn(duration: 800.ms, delay: 400.ms),
+
+                      const SizedBox(height: 48),
+
+                      // Email Input with Suggestions
+                      _buildEmailInputWithSuggestions()
+                          .animate()
+                          .fadeIn(duration: 600.ms, delay: 600.ms)
+                          .slideX(begin: -0.3, duration: 600.ms, delay: 600.ms),
+
+                      const SizedBox(height: 16),
+
+                      // Password Input
+                      _buildInputField(
+                            controller: _passwordController,
+                            label: 'Password',
+                            icon: Icons.lock_outline,
+                            isPassword: true,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your password';
+                              }
+                              return null;
+                            },
+                          )
+                          .animate()
+                          .fadeIn(duration: 600.ms, delay: 700.ms)
+                          .slideX(begin: -0.3, duration: 600.ms, delay: 700.ms),
+
+                      const SizedBox(height: 24),
+
+                      // Login Button (only shown before initial login)
+                      if (!_isInitialLoginComplete) ...[
+                        ElevatedButton(
+                              onPressed: _isLoading ? null : _handleLogin,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                                disabledBackgroundColor: Colors.white
+                                    .withValues(alpha: 0.5),
+                                disabledForegroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.5),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                              ),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Color(0xFF6366F1),
+                                            ),
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Sign In',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            )
+                            .animate()
+                            .fadeIn(duration: 600.ms, delay: 800.ms)
+                            .slideY(
+                              begin: 0.3,
+                              duration: 600.ms,
+                              delay: 800.ms,
+                            ),
+
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Master Password Field (shown after successful auth)
+                      if (_showMasterPasswordField) ...[
+                        _buildInputField(
+                              controller: _masterPasswordController,
+                              label: 'Master Password',
+                              icon: Icons.security,
+                              isPassword: true,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter your master password';
+                                }
+                                return null;
+                              },
+                            )
+                            .animate()
+                            .fadeIn(duration: 400.ms)
+                            .slideY(begin: 0.3, duration: 400.ms),
+
+                        const SizedBox(height: 16),
+
+                        ElevatedButton(
+                              onPressed: _isLoading
+                                  ? null
+                                  : _handleMasterPassword,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                              ),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Color(0xFF6366F1),
+                                            ),
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Unlock Vault',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            )
+                            .animate()
+                            .fadeIn(duration: 400.ms)
+                            .slideY(begin: 0.3, duration: 400.ms),
+                      ],
+
+                      const SizedBox(height: 8),
+
+                      // Forgot Password
+                      TextButton(
+                        onPressed: _goToRecovery,
+                        child: Text(
+                          'Forgot your master password?',
+                          style: TextStyle(
+                            fontFamily: Theme.of(
+                              context,
+                            ).textTheme.bodyLarge?.fontFamily,
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ).animate().fadeIn(duration: 600.ms, delay: 900.ms),
+
+                      const SizedBox(height: 8),
+
+                      // Sign Up Link
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Don't have an account? ",
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 14,
+                            ),
+                          ),
+                          SizedBox(
+                            width: 85,
+                            child: TextButton(
+                              onPressed: _goToRegister,
+                              child: const Text(
+                                'Sign Up',
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  color: Colors.white,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                      )
-                      .animate()
-                      .fadeIn(duration: 600.ms, delay: 800.ms)
-                      .slideY(begin: 0.3, duration: 600.ms, delay: 800.ms),
+                            ),
+                          ),
+                        ],
+                      ).animate().fadeIn(duration: 600.ms, delay: 1000.ms),
 
-                  const SizedBox(height: 16),
+                      const SizedBox(height: 40),
 
-                  // Master Password Field (shown after successful auth)
-                  if (_showMasterPasswordField) ...[
-                    _buildInputField(
-                          controller: _masterPasswordController,
-                          label: 'Master Password',
-                          icon: Icons.security,
-                          isPassword: true,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your master password';
-                            }
-                            return null;
-                          },
-                        )
-                        .animate()
-                        .fadeIn(duration: 400.ms)
-                        .slideY(begin: 0.3, duration: 400.ms),
-
-                    const SizedBox(height: 16),
-
-                    ElevatedButton(
-                          onPressed: _isLoading ? null : _handleMasterPassword,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Theme.of(
+                      // Debug: Reset Onboarding Button (remove in production)
+                      if (Env.isDebug)
+                        TextButton(
+                          onPressed: () async {
+                            final storageService = Provider.of<StorageService>(
                               context,
-                            ).colorScheme.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Color(0xFF6366F1),
-                                    ),
-                                  ),
-                                )
-                              : const Text(
-                                  'Unlock Vault',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                              listen: false,
+                            );
+                            await storageService.resetOnboarding();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Onboarding reset! Restart the app to see onboarding again.',
                                 ),
-                        )
-                        .animate()
-                        .fadeIn(duration: 400.ms)
-                        .slideY(begin: 0.3, duration: 400.ms),
-                  ],
-
-                  const SizedBox(height: 24),
-
-                  // Forgot Password
-                  TextButton(
-                    onPressed: _goToRecovery,
-                    child: Text(
-                      'Forgot your master password?',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 14,
-                      ),
-                    ),
-                  ).animate().fadeIn(duration: 600.ms, delay: 900.ms),
-
-                  const SizedBox(height: 16),
-
-                  // Sign Up Link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Don't have an account? ",
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8),
-                          fontSize: 14,
-                        ),
-                      ),
-                      SizedBox(
-                        width: 80,
-                        child: TextButton(
-                          onPressed: _goToRegister,
-                          child: const Text(
-                            'Sign Up',
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          },
+                          child: Text(
+                            'Reset Onboarding (Debug)',
                             style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontSize: 12,
                             ),
                           ),
                         ),
-                      ),
                     ],
-                  ).animate().fadeIn(duration: 600.ms, delay: 1000.ms),
-
-                  const SizedBox(height: 40),
-
-                  // Debug: Reset Onboarding Button (remove in production)
-                  if (Env.isDebug)
-                    TextButton(
-                      onPressed: () async {
-                        final storageService = Provider.of<StorageService>(
-                          context,
-                          listen: false,
-                        );
-                        await storageService.resetOnboarding();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Onboarding reset! Restart the app to see onboarding again.',
-                            ),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      },
-                      child: Text(
-                        'Reset Onboarding (Debug)',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -392,6 +397,8 @@ class _LoginScreenState extends State<LoginScreen> {
           child: TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
+            textCapitalization: TextCapitalization.none,
+            textInputAction: TextInputAction.next,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Please enter your email';
@@ -417,8 +424,12 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 4),
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline,
+                width: 1,
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
@@ -438,8 +449,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 return ListTile(
                   dense: true,
-                  leading: const Icon(Icons.email, size: 16),
-                  title: Text(fullEmail, style: const TextStyle(fontSize: 14)),
+                  leading: Icon(
+                    Icons.email,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  title: Text(
+                    fullEmail,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontFamily: 'Zalando',
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
                   onTap: () => _selectEmailSuggestion(domain),
                 );
               }).toList(),
@@ -536,6 +558,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result.success) {
         setState(() {
           _showMasterPasswordField = true;
+          _isInitialLoginComplete = true;
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -555,12 +578,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      if (result.success) {
-        // Navigate to dashboard or main app
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/dashboard', (route) => false);
-      } else {
+      if (!result.success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result.error ?? 'Login failed'),
@@ -591,12 +609,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
 
-    if (result.success) {
-      // Navigate to dashboard or main app
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil('/dashboard', (route) => false);
-    } else {
+    if (!result.success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result.error ?? 'Master password incorrect'),

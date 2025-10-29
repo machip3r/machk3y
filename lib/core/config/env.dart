@@ -8,7 +8,7 @@ class Env {
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJybHZpb3VqcGdwcG5jdG14dnFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzNjYzMDAsImV4cCI6MjA3Njk0MjMwMH0.cPOmQoxnNhZb3oxywzJ1A7zCAzZfSPoSySJZyPxGOuA';
 
   // App Configuration
-  static const String appName = 'MachK3y';
+  static const String appName = 'MachKey';
   static const String appVersion = '1.0.0';
 
   // Security Configuration

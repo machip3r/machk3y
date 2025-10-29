@@ -1,32 +1,34 @@
 import 'package:flutter/material.dart';
 
-class AppTheme {
-  // Primary Colors
-  static const Color primaryColor = Color(0xFF6366F1); // Indigo
-  static const Color primaryLight = Color(0xFF818CF8);
-  static const Color primaryDark = Color(0xFF4F46E5);
+// TODO: dark mode and light mode
 
-  // Accent Colors
-  static const Color accentColor = Color(0xFFEC4899); // Pink
-  static const Color accentLight = Color(0xFFF472B6);
+class AppTheme {
+  // Primary Colors - From your palette
+  static const Color primaryColor = Color(0xFF24465F); // Dark blue
+  static const Color primaryLight = Color(0xFF508396); // Light blue
+  static const Color primaryDark = Color(0xFF1A3143); // Darker blue
+
+  // Accent Colors - From your palette
+  static const Color accentColor = Color(0xFF5BC448); // Green
+  static const Color accentLight = Color(0xFF6DCD56); // Light green
 
   // Semantic Colors
-  static const Color successColor = Color(0xFF10B981); // Green
+  static const Color successColor = Color(0xFF5BC448); // Green from palette
   static const Color warningColor = Color(0xFFF59E0B); // Amber
   static const Color dangerColor = Color(0xFFEF4444); // Red
-  static const Color infoColor = Color(0xFF3B82F6); // Blue
+  static const Color infoColor = Color(0xFF508396); // Blue from palette
 
-  // Neutral Colors
-  static const Color backgroundColor = Color(0xFFF9FAFB);
-  static const Color surfaceColor = Color(0xFFFFFFFF);
-  static const Color surfaceVariantColor = Color(0xFFF3F4F6);
-  static const Color onSurfaceColor = Color(0xFF1F2937);
-  static const Color onSurfaceVariantColor = Color(0xFF6B7280);
+  // Neutral Colors - From your palette
+  static const Color backgroundColor = Color(0xFFF5F2EE); // Cream white
+  static const Color surfaceColor = Color(0xFFFFFFFF); // Pure white
+  static const Color surfaceVariantColor = Color(0xFFDADCCA); // Light beige
+  static const Color onSurfaceColor = Color(0xFF24465F); // Dark blue text
+  static const Color onSurfaceVariantColor = Color(0xFF6B7280); // Gray text
 
   // Password Strength Colors
   static const Color weakPasswordColor = Color(0xFFEF4444);
-  static const Color mediumPasswordColor = Color(0xFFF59E0B);
-  static const Color strongPasswordColor = Color(0xFF10B981);
+  static const Color mediumPasswordColor = Color(0xFFFFB84D);
+  static const Color strongPasswordColor = Color(0xFF5BC448);
 
   // Light Theme
   static ThemeData get lightTheme {
@@ -51,11 +53,12 @@ class AppTheme {
       elevatedButtonTheme: _elevatedButtonTheme,
       outlinedButtonTheme: _outlinedButtonTheme,
       textButtonTheme: _textButtonTheme,
-      inputDecorationTheme: _inputDecorationTheme,
+      inputDecorationTheme: _inputDecorationThemeLight,
       cardTheme: _cardTheme,
       appBarTheme: _appBarTheme,
       bottomNavigationBarTheme: _bottomNavigationBarTheme,
       floatingActionButtonTheme: _floatingActionButtonTheme,
+      snackBarTheme: _snackBarTheme,
     );
   }
 
@@ -65,14 +68,14 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: const ColorScheme.dark(
-        primary: primaryLight,
-        primaryContainer: primaryColor,
-        secondary: accentLight,
-        secondaryContainer: accentColor,
+        primary: primaryColor,
+        primaryContainer: primaryLight,
+        secondary: accentColor,
+        secondaryContainer: accentLight,
         surface: Color(0xFF1F2937),
         surfaceContainerHighest: Color(0xFF374151),
-        onPrimary: Colors.black,
-        onSecondary: Colors.black,
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
         onSurface: Color(0xFFF9FAFB),
         onSurfaceVariant: Color(0xFFD1D5DB),
         error: dangerColor,
@@ -85,91 +88,97 @@ class AppTheme {
       elevatedButtonTheme: _elevatedButtonTheme,
       outlinedButtonTheme: _outlinedButtonTheme,
       textButtonTheme: _textButtonTheme,
-      inputDecorationTheme: _inputDecorationTheme,
+      inputDecorationTheme: _inputDecorationThemeDark,
       cardTheme: _cardTheme,
       appBarTheme: _appBarTheme,
       bottomNavigationBarTheme: _bottomNavigationBarTheme,
       floatingActionButtonTheme: _floatingActionButtonTheme,
+      snackBarTheme: _snackBarTheme,
     );
   }
 
   // Text Theme
   static TextTheme get _textTheme {
     return const TextTheme(
+      // Titles - Lexend
       displayLarge: TextStyle(
-        fontFamily: 'Poppins',
+        fontFamily: 'Lexend',
         fontSize: 32,
         fontWeight: FontWeight.bold,
         letterSpacing: -0.5,
       ),
       displayMedium: TextStyle(
-        fontFamily: 'Poppins',
+        fontFamily: 'Lexend',
         fontSize: 28,
         fontWeight: FontWeight.bold,
         letterSpacing: -0.25,
       ),
       displaySmall: TextStyle(
-        fontFamily: 'Poppins',
+        fontFamily: 'Lexend',
         fontSize: 24,
         fontWeight: FontWeight.bold,
       ),
       headlineLarge: TextStyle(
-        fontFamily: 'Poppins',
+        fontFamily: 'Lexend',
         fontSize: 22,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.bold,
       ),
       headlineMedium: TextStyle(
-        fontFamily: 'Poppins',
+        fontFamily: 'Lexend',
         fontSize: 20,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.bold,
       ),
       headlineSmall: TextStyle(
-        fontFamily: 'Poppins',
+        fontFamily: 'Lexend',
         fontSize: 18,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.bold,
       ),
       titleLarge: TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: 'Lexend',
         fontSize: 16,
         fontWeight: FontWeight.w600,
       ),
       titleMedium: TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: 'Lexend',
         fontSize: 14,
         fontWeight: FontWeight.w600,
       ),
       titleSmall: TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: 'Lexend',
         fontSize: 12,
         fontWeight: FontWeight.w600,
       ),
+      // Body Text - Zalando
       bodyLarge: TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: 'Zalando',
         fontSize: 16,
         fontWeight: FontWeight.normal,
+        letterSpacing: 0.15,
       ),
       bodyMedium: TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: 'Zalando',
         fontSize: 14,
         fontWeight: FontWeight.normal,
+        letterSpacing: 0.25,
       ),
       bodySmall: TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: 'Zalando',
         fontSize: 12,
         fontWeight: FontWeight.normal,
+        letterSpacing: 0.4,
       ),
       labelLarge: TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: 'Zalando',
         fontSize: 14,
         fontWeight: FontWeight.w500,
       ),
       labelMedium: TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: 'Zalando',
         fontSize: 12,
         fontWeight: FontWeight.w500,
       ),
       labelSmall: TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: 'Zalando',
         fontSize: 10,
         fontWeight: FontWeight.w500,
       ),
@@ -207,18 +216,18 @@ class AppTheme {
     );
   }
 
-  // Input Decoration Theme
-  static InputDecorationTheme get _inputDecorationTheme {
+  // Input Decoration Theme (Light Mode)
+  static InputDecorationTheme get _inputDecorationThemeLight {
     return InputDecorationTheme(
       filled: true,
-      fillColor: surfaceVariantColor.withValues(alpha: 0.5),
+      fillColor: surfaceColor,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: onSurfaceVariantColor, width: 1.5),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: onSurfaceVariantColor, width: 1.5),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -229,7 +238,63 @@ class AppTheme {
         borderSide: const BorderSide(color: dangerColor, width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      hintStyle: const TextStyle(color: onSurfaceVariantColor, fontSize: 16),
+      hintStyle: TextStyle(
+        color: onSurfaceColor.withValues(alpha: 0.5),
+        fontSize: 16,
+        fontFamily: 'Zalando',
+      ),
+      labelStyle: TextStyle(
+        color: onSurfaceColor.withValues(alpha: 0.7),
+        fontSize: 16,
+        fontFamily: 'Zalando',
+      ),
+      helperStyle: TextStyle(
+        color: onSurfaceColor.withValues(alpha: 0.7),
+        fontFamily: 'Zalando',
+      ),
+      prefixIconColor: onSurfaceColor.withValues(alpha: 0.7),
+      suffixIconColor: onSurfaceColor.withValues(alpha: 0.7),
+    );
+  }
+
+  // Input Decoration Theme (Dark Mode)
+  static InputDecorationTheme get _inputDecorationThemeDark {
+    return InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFF1F2937),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF374151), width: 1.5),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF374151), width: 1.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: primaryColor, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: dangerColor, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      hintStyle: TextStyle(
+        color: const Color(0xFFD1D5DB).withValues(alpha: 0.5),
+        fontSize: 16,
+        fontFamily: 'Zalando',
+      ),
+      labelStyle: TextStyle(
+        color: const Color(0xFFD1D5DB).withValues(alpha: 0.7),
+        fontSize: 16,
+        fontFamily: 'Zalando',
+      ),
+      helperStyle: TextStyle(
+        color: const Color(0xFFD1D5DB).withValues(alpha: 0.7),
+        fontFamily: 'Zalando',
+      ),
+      prefixIconColor: const Color(0xFFD1D5DB).withValues(alpha: 0.7),
+      suffixIconColor: const Color(0xFFD1D5DB).withValues(alpha: 0.7),
     );
   }
 
@@ -245,13 +310,13 @@ class AppTheme {
 
   // App Bar Theme
   static AppBarTheme get _appBarTheme {
-    return const AppBarTheme(
+    return AppBarTheme(
       elevation: 0,
       centerTitle: true,
-      titleTextStyle: TextStyle(
-        fontFamily: 'Poppins',
+      titleTextStyle: const TextStyle(
+        fontFamily: 'Lexend',
         fontSize: 20,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.bold,
       ),
     );
   }
@@ -269,6 +334,22 @@ class AppTheme {
     return FloatingActionButtonThemeData(
       elevation: 6,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    );
+  }
+
+  // SnackBar Theme
+  static SnackBarThemeData get _snackBarTheme {
+    return const SnackBarThemeData(
+      backgroundColor: Color(0xFF1F2937),
+      contentTextStyle: TextStyle(
+        fontFamily: 'Zalando',
+        fontSize: 14,
+        color: Color(0xFFF9FAFB),
+      ),
+      actionTextColor: successColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+      ),
     );
   }
 

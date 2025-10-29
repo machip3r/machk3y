@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../core/theme/app_theme.dart';
 import 'login_screen.dart';
 
 class RecoveryScreen extends StatefulWidget {
@@ -24,6 +25,90 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
   bool _isConfirmMasterPasswordVisible = false;
   bool _isLoading = false;
   bool _showNewMasterPasswordFields = false;
+
+  // Email suggestions
+  bool _showEmailSuggestions = false;
+  List<String> _emailSuggestions = [];
+  final List<String> _commonDomains = [
+    'gmail.com',
+    'yahoo.com',
+    'hotmail.com',
+    'outlook.com',
+    'yahoo.com.mx',
+    'hotmail.com.mx',
+    'live.com',
+    'icloud.com',
+    'aol.com',
+    'protonmail.com',
+    'yandex.com',
+    'mail.com',
+    'zoho.com',
+    'fastmail.com',
+    'tutanota.com',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_onEmailChanged);
+  }
+
+  void _onEmailChanged() {
+    final text = _emailController.text;
+    final atIndex = text.lastIndexOf('@');
+
+    if (atIndex != -1) {
+      final domainPart = text.substring(atIndex + 1);
+      if (domainPart.isNotEmpty) {
+        _emailSuggestions = _commonDomains
+            .where(
+              (domain) =>
+                  domain.toLowerCase().startsWith(domainPart.toLowerCase()),
+            )
+            .toList();
+        setState(() {
+          _showEmailSuggestions = _emailSuggestions.isNotEmpty;
+        });
+      } else {
+        setState(() {
+          _showEmailSuggestions = true;
+          _emailSuggestions = _commonDomains;
+        });
+      }
+    } else {
+      setState(() {
+        _showEmailSuggestions = false;
+      });
+    }
+  }
+
+  void _selectEmailSuggestion(String domain) {
+    final text = _emailController.text;
+    final atIndex = text.lastIndexOf('@');
+
+    if (atIndex != -1) {
+      final username = text.substring(0, atIndex);
+      _emailController.text = '$username@$domain';
+      _emailController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _emailController.text.length),
+      );
+    }
+
+    setState(() {
+      _showEmailSuggestions = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _recoveryKeyController.dispose();
+    _newMasterPasswordController.dispose();
+    _confirmMasterPasswordController.dispose();
+    _emailController.removeListener(_onEmailChanged);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,30 +146,6 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
 
                   const SizedBox(height: 20),
 
-                  // App Logo
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.restore,
-                      size: 50,
-                      color: Color(0xFF6366F1),
-                    ),
-                  ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
-
-                  const SizedBox(height: 24),
-
                   // Title
                   Text(
                         'Recover Account',
@@ -111,24 +172,8 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
 
                   const SizedBox(height: 32),
 
-                  // Email Input
-                  _buildInputField(
-                        controller: _emailController,
-                        label: 'Email',
-                        icon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          if (!RegExp(
-                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                          ).hasMatch(value)) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
-                      )
+                  // Email Input with Suggestions
+                  _buildEmailInputWithSuggestions()
                       .animate()
                       .fadeIn(duration: 600.ms, delay: 600.ms)
                       .slideX(begin: -0.3, duration: 600.ms, delay: 600.ms),
@@ -138,7 +183,7 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                   // Password Input
                   _buildInputField(
                         controller: _passwordController,
-                        label: 'Account Password',
+                        label: 'Password',
                         icon: Icons.lock_outline,
                         isPassword: true,
                         validator: (value) {
@@ -197,7 +242,7 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    Color(0xFF6366F1),
+                                    AppTheme.primaryColor,
                                   ),
                                 ),
                               )
@@ -300,7 +345,7 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                      Color(0xFF6366F1),
+                                      AppTheme.primaryColor,
                                     ),
                                   ),
                                 )
@@ -358,20 +403,6 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                       ],
                     ),
                   ).animate().fadeIn(duration: 600.ms, delay: 1000.ms),
-
-                  const SizedBox(height: 24),
-
-                  // Back to Login
-                  TextButton(
-                    onPressed: _goToLogin,
-                    child: Text(
-                      'Back to Sign In',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 14,
-                      ),
-                    ),
-                  ).animate().fadeIn(duration: 600.ms, delay: 1100.ms),
 
                   const SizedBox(height: 40),
                 ],
@@ -529,19 +560,96 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
     });
   }
 
-  void _goToLogin() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
-  }
+  Widget _buildEmailInputWithSuggestions() {
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: TextFormField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            textCapitalization: TextCapitalization.none,
+            textInputAction: TextInputAction.next,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your email';
+              }
+              if (!RegExp(
+                r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+              ).hasMatch(value)) {
+                return 'Please enter a valid email';
+              }
+              return null;
+            },
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(Icons.email_outlined),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(16)),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+        if (_showEmailSuggestions) ...[
+          const SizedBox(height: 4),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline,
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: _emailSuggestions.take(5).map((domain) {
+                final text = _emailController.text;
+                final atIndex = text.lastIndexOf('@');
+                final username = atIndex != -1
+                    ? text.substring(0, atIndex)
+                    : '';
+                final fullEmail = '$username@$domain';
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _recoveryKeyController.dispose();
-    _newMasterPasswordController.dispose();
-    _confirmMasterPasswordController.dispose();
-    super.dispose();
+                return ListTile(
+                  dense: true,
+                  leading: Icon(
+                    Icons.email,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  title: Text(
+                    fullEmail,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontFamily: 'Zalando',
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  onTap: () => _selectEmailSuggestion(domain),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ],
+    );
   }
 }

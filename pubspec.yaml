@@ -65,3 +65,15 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+
+  fonts:
+    - family: Lexend
+      fonts:
+        - asset: assets/fonts/Lexend-Regular.ttf
+        - asset: assets/fonts/Lexend-Bold.ttf
+          weight: 700
+    - family: Zalando
+      fonts:
+        - asset: assets/fonts/Zalando-Light.ttf
+        - asset: assets/fonts/Zalando-Medium.ttf
+          weight: 500

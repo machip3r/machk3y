@@ -74,14 +74,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      floatingActionButton: _selectedIndex == 1
-          ? FloatingActionButton(
-              onPressed: () {
-                // Navigate to add credential
-              },
-              child: const Icon(Icons.add),
-            )
-          : null,
     );
   }
 }
@@ -93,7 +85,7 @@ class DashboardHome extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MachK3y'),
+        title: const Text('MachKey'),
         actions: [
           IconButton(
             onPressed: () {

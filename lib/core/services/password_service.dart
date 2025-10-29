@@ -141,7 +141,7 @@ class PasswordService {
 
       final response = await http.get(
         Uri.parse('${AppConstants.hibpApiUrl}$prefix'),
-        headers: {'User-Agent': 'MachK3y-PasswordManager'},
+        headers: {'User-Agent': 'MachKey-PasswordManager'},
       );
 
       if (response.statusCode == 200) {
